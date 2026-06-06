@@ -1,0 +1,129 @@
+"use client";
+
+import { useState, useTransition, type FormEvent } from "react";
+import { Trophy, ArrowRight, Mail, KeyRound } from "lucide-react";
+import { requestCodeAction, verifyCodeAction } from "@/app/actions/auth";
+
+export default function LoginPage() {
+  const [step, setStep] = useState<"email" | "code">("email");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function sendCode(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    startTransition(async () => {
+      const result = await requestCodeAction(email);
+      if (!result.ok) {
+        setError(result.error ?? "Something went wrong.");
+        return;
+      }
+      setStep("code");
+    });
+  }
+
+  function verify(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    startTransition(async () => {
+      const result = await verifyCodeAction(email, code);
+      if (!result.ok) {
+        setError(result.error ?? "Invalid code.");
+        return;
+      }
+      window.location.assign("/matches");
+    });
+  }
+
+  return (
+    <div className="pitch-stripes flex min-h-screen flex-col items-center justify-center px-4">
+      <div className="mb-7 flex flex-col items-center text-center">
+        <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-panel neon-glow">
+          <Trophy className="text-neon" size={26} />
+        </div>
+        <h1 className="font-display text-3xl font-bold tracking-wide">
+          BOLÃO <span className="text-neon">DA COPA 2026</span>
+        </h1>
+        <p className="mt-1 text-sm text-mute">Lumina × OKT prediction pool</p>
+      </div>
+
+      <div className="w-full max-w-sm rounded-2xl border border-line bg-panel p-6">
+        {step === "email" ? (
+          <form onSubmit={sendCode} className="flex flex-col gap-3">
+            <label className="text-sm font-medium text-ink" htmlFor="email">
+              Work email
+            </label>
+            <div className="flex items-center gap-2 rounded-lg border border-line bg-base px-3">
+              <Mail size={16} className="text-mute" />
+              <input
+                id="email"
+                type="email"
+                required
+                autoFocus
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@luminacm.com"
+                className="h-11 flex-1 bg-transparent text-sm outline-none placeholder:text-mute"
+              />
+            </div>
+            <p className="text-xs text-mute">
+              We will email you a 6-digit code. Only @luminacm.com and @oktcapital.com
+              addresses can join.
+            </p>
+            {error && <p className="text-sm text-danger">{error}</p>}
+            <button
+              type="submit"
+              disabled={pending}
+              className="mt-1 flex h-11 items-center justify-center gap-2 rounded-lg bg-neon text-sm font-semibold text-base transition hover:brightness-110 disabled:opacity-50"
+            >
+              {pending ? "Sending…" : "Send login code"}
+              <ArrowRight size={16} />
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={verify} className="flex flex-col gap-3">
+            <label className="text-sm font-medium text-ink" htmlFor="code">
+              Enter the code sent to <span className="text-neon">{email}</span>
+            </label>
+            <div className="flex items-center gap-2 rounded-lg border border-line bg-base px-3">
+              <KeyRound size={16} className="text-mute" />
+              <input
+                id="code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                required
+                autoFocus
+                value={code}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
+                placeholder="••••••"
+                className="tabular h-12 flex-1 bg-transparent text-center text-2xl font-bold tracking-[0.5em] outline-none placeholder:text-mute"
+              />
+            </div>
+            {error && <p className="text-sm text-danger">{error}</p>}
+            <button
+              type="submit"
+              disabled={pending || code.length !== 6}
+              className="mt-1 flex h-11 items-center justify-center gap-2 rounded-lg bg-neon text-sm font-semibold text-base transition hover:brightness-110 disabled:opacity-50"
+            >
+              {pending ? "Verifying…" : "Verify & enter"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStep("email");
+                setCode("");
+                setError(null);
+              }}
+              className="text-xs text-mute hover:text-ink"
+            >
+              ← Use a different email
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
