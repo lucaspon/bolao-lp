@@ -6,12 +6,14 @@ import { useNow } from "@/components/use-now";
 import { usePillKeyboard, type Side } from "@/components/keyboard-bet";
 import { placeBetAction, clearBetAction } from "@/app/actions/bets";
 import { isLockedAt } from "@/lib/match";
+import type { MatchStatus } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 
 export type PillMatch = {
   id: number;
   kickoffMs: number;
   initialLocked: boolean;
+  status: MatchStatus;
   homeTeam: string | null;
   awayTeam: string | null;
   homePlaceholder: string | null;
@@ -66,9 +68,14 @@ function Side_({
   );
 }
 
-function ScoreBox({ children }: { children: React.ReactNode }) {
+function ScoreBox({ children, live }: { children: React.ReactNode; live?: boolean }) {
   return (
-    <span className="tabular inline-flex h-5 w-5 items-center justify-center font-display text-sm font-bold text-ink">
+    <span
+      className={cn(
+        "tabular inline-flex h-5 w-5 items-center justify-center font-display text-sm font-bold",
+        live ? "text-danger" : "text-ink",
+      )}
+    >
       {children}
     </span>
   );
@@ -76,17 +83,19 @@ function ScoreBox({ children }: { children: React.ReactNode }) {
 
 export function MatchPill({ match, className }: { match: PillMatch; className?: string }) {
   const { bet } = match;
-  const finished = match.homeScore !== null && match.awayScore !== null;
+  const finished = match.status === "finished";
+  const live = match.status === "live";
+  const showActual = finished || live;
   const teamsKnown = !!match.homeTeam && !!match.awayTeam;
   const isBrazil = match.homeTeam === BRAZIL || match.awayTeam === BRAZIL;
 
   const now = useNow();
   const locked = now === null ? match.initialLocked : isLockedAt(match.kickoffMs, now);
-  const editable = teamsKnown && !finished && !locked;
+  const editable = teamsKnown && match.status === "scheduled" && !locked;
 
   const [home, setHome] = useState(bet?.homePred?.toString() ?? "");
   const [away, setAway] = useState(bet?.awayPred?.toString() ?? "");
-  const [status, setStatus] = useState<SaveStatus>("idle");
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [, startTransition] = useTransition();
 
   function commit(h: string, a: string) {
@@ -94,10 +103,10 @@ export function MatchPill({ match, className }: { match: PillMatch; className?: 
     const hn = Number(h);
     const an = Number(a);
     if (hn === bet?.homePred && an === bet?.awayPred) return; // unchanged
-    setStatus("saving");
+    setSaveStatus("saving");
     startTransition(async () => {
       const result = await placeBetAction(match.id, hn, an);
-      setStatus(result.ok ? "saved" : "error");
+      setSaveStatus(result.ok ? "saved" : "error");
     });
   }
 
@@ -115,13 +124,13 @@ export function MatchPill({ match, className }: { match: PillMatch; className?: 
     setHome("");
     setAway("");
     if (!bet) {
-      setStatus("idle");
+      setSaveStatus("idle");
       return;
     }
-    setStatus("saving");
+    setSaveStatus("saving");
     startTransition(async () => {
       const result = await clearBetAction(match.id);
-      setStatus(result.ok ? "idle" : "error");
+      setSaveStatus(result.ok ? "idle" : "error");
     });
   }
 
@@ -135,32 +144,36 @@ export function MatchPill({ match, className }: { match: PillMatch; className?: 
     clear,
   });
 
-  const borderClass = finished
-    ? bet?.points === 3
-      ? "border-gold/50"
-      : bet?.points === 1
-        ? "border-neon/50"
-        : "border-line"
-    : !teamsKnown
-      ? "border-line/50"
-      : locked
-        ? "border-line"
-        : bet
-          ? "border-neon/40"
-          : "border-line";
+  const borderClass = live
+    ? "border-danger/70"
+    : finished
+      ? bet?.points === 3
+        ? "border-gold/50"
+        : bet?.points === 1
+          ? "border-neon/50"
+          : "border-line"
+      : !teamsKnown
+        ? "border-line/50"
+        : locked
+          ? "border-line"
+          : bet
+            ? "border-neon/40"
+            : "border-line";
 
   let statusLabel: string;
-  if (finished) {
+  if (live) {
+    statusLabel = bet ? `LIVE · pick ${bet.homePred}–${bet.awayPred}` : "LIVE";
+  } else if (finished) {
     statusLabel = bet?.points != null ? `FT · +${bet.points}p` : "FT";
   } else if (!teamsKnown) {
     statusLabel = "TBD";
   } else if (locked) {
     statusLabel = "🔒 locked";
-  } else if (status === "saving") {
+  } else if (saveStatus === "saving") {
     statusLabel = "saving…";
-  } else if (status === "saved") {
+  } else if (saveStatus === "saved") {
     statusLabel = "saved ✓";
-  } else if (status === "error") {
+  } else if (saveStatus === "error") {
     statusLabel = "error";
   } else {
     statusLabel = bet ? "saved" : "open";
@@ -208,18 +221,24 @@ export function MatchPill({ match, className }: { match: PillMatch; className?: 
 
         <span className="flex shrink-0 items-center">
           {editable ? scoreInput("home", home, setHome) : (
-            <ScoreBox>{finished ? match.homeScore : (bet?.homePred ?? "–")}</ScoreBox>
+            <ScoreBox live={live}>{showActual ? match.homeScore : (bet?.homePred ?? "–")}</ScoreBox>
           )}
           <span className="px-0.5 text-mute">×</span>
           {editable ? scoreInput("away", away, setAway) : (
-            <ScoreBox>{finished ? match.awayScore : (bet?.awayPred ?? "–")}</ScoreBox>
+            <ScoreBox live={live}>{showActual ? match.awayScore : (bet?.awayPred ?? "–")}</ScoreBox>
           )}
         </span>
 
         <Side_ code={match.awayTeam} placeholder={match.awayPlaceholder} reverse />
       </div>
 
-      <div className="mt-1 truncate text-center text-[10px] text-mute">
+      <div
+        className={cn(
+          "mt-1 truncate text-center text-[10px]",
+          live ? "font-semibold text-danger" : "text-mute",
+        )}
+      >
+        {live && <span className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-danger align-middle" />}
         {match.dateLabel} · {statusLabel}
       </div>
     </div>

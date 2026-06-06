@@ -1,7 +1,8 @@
-import { and, asc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "./client";
 import { users, matches, bets, type User, type Match } from "./schema";
 import { isAdminEmail, usernameFromEmail } from "../auth/policy";
+import { scoreBet } from "../scoring";
 
 export type MatchWithBet = Match & {
   bet: { homePred: number; awayPred: number; points: number | null } | null;
@@ -44,25 +45,43 @@ export async function getMatchById(id: number): Promise<Match | null> {
   return rows[0] ?? null;
 }
 
-// How many matches have a final score — the denominator for points-percentage.
+// How many matches are fully played — the denominator for points-percentage.
 export async function getConcludedMatchCount(): Promise<number> {
   const [row] = await db
     .select({ n: sql<number>`count(*)`.mapWith(Number) })
     .from(matches)
-    .where(isNotNull(matches.homeScore));
+    .where(eq(matches.status, "finished"));
+  return row.n;
+}
+
+export async function getLiveMatchCount(): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)`.mapWith(Number) })
+    .from(matches)
+    .where(eq(matches.status, "live"));
   return row.n;
 }
 
 export type LeaderRow = {
   userId: number;
   username: string;
-  points: number;
+  points: number; // official: finished matches only
   exact: number;
   correct: number;
   picks: number;
+  livePoints: number; // provisional: includes in-play matches
 };
 
-// Standings: total points per user, with exact/correct counts as tie-breakers.
+// Provisional points: scores in-play AND finished matches using their current score.
+const livePointsExpr = sql<number>`coalesce(sum(
+  case when ${matches.status} in ('live', 'finished')
+            and ${matches.homeScore} is not null and ${matches.awayScore} is not null then
+    case when ${bets.homePred} = ${matches.homeScore} and ${bets.awayPred} = ${matches.awayScore} then 3
+         when sign(${bets.homePred} - ${bets.awayPred}) = sign(${matches.homeScore} - ${matches.awayScore}) then 1
+         else 0 end
+  else 0 end), 0)`;
+
+// Standings: official points per user (+ a provisional total incl. in-play matches).
 export async function getLeaderboard(): Promise<LeaderRow[]> {
   return db
     .select({
@@ -72,9 +91,11 @@ export async function getLeaderboard(): Promise<LeaderRow[]> {
       exact: sql<number>`count(*) filter (where ${bets.points} = 3)`.mapWith(Number),
       correct: sql<number>`count(*) filter (where ${bets.points} = 1)`.mapWith(Number),
       picks: sql<number>`count(${bets.id})`.mapWith(Number),
+      livePoints: livePointsExpr.mapWith(Number),
     })
     .from(users)
     .leftJoin(bets, eq(bets.userId, users.id))
+    .leftJoin(matches, eq(matches.id, bets.matchId))
     .groupBy(users.id, users.username)
     .orderBy(
       sql`coalesce(sum(${bets.points}), 0) desc`,
@@ -100,6 +121,22 @@ export async function upsertBet(
 
 export async function deleteBet(userId: number, matchId: number): Promise<void> {
   await db.delete(bets).where(and(eq(bets.userId, userId), eq(bets.matchId, matchId)));
+}
+
+// Recomputes points for every bet on a match. Used by the admin result entry
+// and the live-results sync.
+export async function rescoreMatch(
+  matchId: number,
+  homeScore: number,
+  awayScore: number,
+): Promise<void> {
+  await db.transaction(async (tx) => {
+    const matchBets = await tx.select().from(bets).where(eq(bets.matchId, matchId));
+    for (const bet of matchBets) {
+      const points = scoreBet(bet.homePred, bet.awayPred, homeScore, awayScore);
+      await tx.update(bets).set({ points }).where(eq(bets.id, bet.id));
+    }
+  });
 }
 
 // Creates the user on first login; refreshes admin status from env on each login.

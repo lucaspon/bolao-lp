@@ -6,7 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { matches, bets } from "@/lib/db/schema";
 import { getSession } from "@/lib/auth/session";
-import { scoreBet } from "@/lib/scoring";
+import { rescoreMatch } from "@/lib/db/queries";
 import { TEAMS } from "@/lib/teams";
 import type { ActionResult } from "@/lib/types";
 
@@ -68,13 +68,11 @@ export async function setResultAction(
   const clearing = homeScoreRaw === "" && awayScoreRaw === "";
 
   if (clearing) {
-    await db.transaction(async (tx) => {
-      await tx
-        .update(matches)
-        .set({ homeScore: null, awayScore: null })
-        .where(eq(matches.id, matchId));
-      await tx.update(bets).set({ points: null }).where(eq(bets.matchId, matchId));
-    });
+    await db
+      .update(matches)
+      .set({ homeScore: null, awayScore: null, status: "scheduled" })
+      .where(eq(matches.id, matchId));
+    await db.update(bets).set({ points: null }).where(eq(bets.matchId, matchId));
     revalidateAll();
     return { ok: true };
   }
@@ -90,18 +88,11 @@ export async function setResultAction(
   const home = homeParsed.data;
   const away = awayParsed.data;
 
-  await db.transaction(async (tx) => {
-    await tx
-      .update(matches)
-      .set({ homeScore: home, awayScore: away })
-      .where(eq(matches.id, matchId));
-
-    const matchBets = await tx.select().from(bets).where(eq(bets.matchId, matchId));
-    for (const bet of matchBets) {
-      const points = scoreBet(bet.homePred, bet.awayPred, home, away);
-      await tx.update(bets).set({ points }).where(eq(bets.id, bet.id));
-    }
-  });
+  await db
+    .update(matches)
+    .set({ homeScore: home, awayScore: away, status: "finished" })
+    .where(eq(matches.id, matchId));
+  await rescoreMatch(matchId, home, away);
 
   revalidateAll();
   return { ok: true };

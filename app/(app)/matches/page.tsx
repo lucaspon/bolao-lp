@@ -15,6 +15,7 @@ function toPill(match: MatchWithBet): PillMatch {
     id: match.id,
     kickoffMs,
     initialLocked: isLockedAt(kickoffMs),
+    status: match.status,
     homeTeam: match.homeTeam,
     awayTeam: match.awayTeam,
     homePlaceholder: match.homePlaceholder,

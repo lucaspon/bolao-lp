@@ -21,20 +21,24 @@ export function isLockedAt(kickoffMs: number, now: number = Date.now()): boolean
   return now >= kickoffMs - BET_LOCK_MS;
 }
 
-export function isFinished(match: Pick<Match, "homeScore" | "awayScore">): boolean {
-  return match.homeScore !== null && match.awayScore !== null;
+export function isFinished(match: Pick<Match, "status">): boolean {
+  return match.status === "finished";
+}
+
+export function isLive(match: Pick<Match, "status">): boolean {
+  return match.status === "live";
 }
 
 export function teamsKnown(match: Pick<Match, "homeTeam" | "awayTeam">): boolean {
   return !!match.homeTeam && !!match.awayTeam;
 }
 
-// A match accepts bets when both teams are known, it has not been played, and
+// A match accepts bets when both teams are known, it has not started, and
 // kickoff is more than an hour away.
 export function canBet(match: Match): boolean {
   return (
     teamsKnown(match) &&
-    !isFinished(match) &&
+    match.status === "scheduled" &&
     !isLockedAt(new Date(match.kickoffAt).getTime())
   );
 }

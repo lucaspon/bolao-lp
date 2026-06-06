@@ -22,6 +22,11 @@ export const stageEnum = pgEnum("stage", [
 
 export type Stage = (typeof stageEnum.enumValues)[number];
 
+// Lifecycle of a match: not started, in progress, or played.
+export const matchStatusEnum = pgEnum("match_status", ["scheduled", "live", "finished"]);
+
+export type MatchStatus = (typeof matchStatusEnum.enumValues)[number];
+
 // One row per person. We key on the full email; the username is the email prefix.
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -45,7 +50,8 @@ export const loginCodes = pgTable("login_codes", {
 // and we keep a human placeholder (e.g. "Winner Group A") to show meanwhile.
 export const matches = pgTable("matches", {
   id: serial("id").primaryKey(),
-  extId: text("ext_id").notNull().unique(), // stable seed key, lets re-seeding skip edited rows
+  extId: text("ext_id").notNull().unique(), // stable key, lets re-imports skip existing rows
+  apiMatchId: integer("api_match_id").unique(), // football-data.org match id
   stage: stageEnum("stage").notNull(),
   groupLabel: text("group_label"), // 'A'..'L' for group stage, null otherwise
   homeTeam: text("home_team"), // team code, null until a knockout slot is decided
@@ -54,7 +60,8 @@ export const matches = pgTable("matches", {
   awayPlaceholder: text("away_placeholder"),
   kickoffAt: timestamp("kickoff_at", { withTimezone: true }).notNull(),
   venue: text("venue"),
-  homeScore: integer("home_score"), // null until the match is scored
+  status: matchStatusEnum("status").notNull().default("scheduled"),
+  homeScore: integer("home_score"), // current/final score (set when live or finished)
   awayScore: integer("away_score"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -59,6 +59,15 @@ export const TEAMS: Record<string, Team> = {
   JOR: { code: "JOR", name: "Jordan", flag: "🇯🇴" },
   IRQ: { code: "IRQ", name: "Iraq", flag: "🇮🇶" },
   RSA: { code: "RSA", name: "South Africa", flag: "🇿🇦" },
+  // Added to match the real 2026 draw (football-data.org TLAs).
+  URY: { code: "URY", name: "Uruguay", flag: "🇺🇾" },
+  CZE: { code: "CZE", name: "Czechia", flag: "🇨🇿" },
+  BIH: { code: "BIH", name: "Bosnia & Herzegovina", flag: "🇧🇦" },
+  COD: { code: "COD", name: "DR Congo", flag: "🇨🇩" },
+  CPV: { code: "CPV", name: "Cape Verde", flag: "🇨🇻" },
+  CUW: { code: "CUW", name: "Curaçao", flag: "🇨🇼" },
+  HAI: { code: "HAI", name: "Haiti", flag: "🇭🇹" },
+  SWE: { code: "SWE", name: "Sweden", flag: "🇸🇪" },
 };
 
 // 12 groups (A–L) of 4 teams each.

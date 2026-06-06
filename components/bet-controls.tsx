@@ -6,12 +6,14 @@ import { TeamBadge } from "@/components/team-badge";
 import { useNow } from "@/components/use-now";
 import { placeBetAction } from "@/app/actions/bets";
 import { isLockedAt } from "@/lib/match";
+import type { MatchStatus } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 
 export type BetControlsProps = {
   matchId: number;
   kickoffMs: number;
   initialLocked: boolean;
+  status: MatchStatus;
   homeTeam: string | null;
   awayTeam: string | null;
   homePlaceholder: string | null;
@@ -84,7 +86,9 @@ function Stepper({
 
 export function BetControls(props: BetControlsProps) {
   const { matchId, kickoffMs, bet } = props;
-  const finished = props.homeScore !== null && props.awayScore !== null;
+  const finished = props.status === "finished";
+  const live = props.status === "live";
+  const showActual = finished || live;
   const teamsKnown = !!props.homeTeam && !!props.awayTeam;
 
   const [home, setHome] = useState(bet?.homePred ?? 0);
@@ -113,7 +117,7 @@ export function BetControls(props: BetControlsProps) {
     });
   }
 
-  const editable = teamsKnown && !finished && !locked;
+  const editable = teamsKnown && props.status === "scheduled" && !locked;
 
   return (
     <div suppressHydrationWarning className="flex flex-col gap-3">
@@ -125,8 +129,13 @@ export function BetControls(props: BetControlsProps) {
         />
 
         <div className="flex shrink-0 flex-col items-center gap-1.5">
-          {finished ? (
-            <div className="tabular font-display text-3xl font-bold text-ink">
+          {showActual ? (
+            <div
+              className={cn(
+                "tabular font-display text-3xl font-bold",
+                live ? "text-danger" : "text-ink",
+              )}
+            >
               {props.homeScore}
               <span className="px-1.5 text-mute">:</span>
               {props.awayScore}
@@ -156,6 +165,7 @@ export function BetControls(props: BetControlsProps) {
 
       <Footer
         finished={finished}
+        live={live}
         teamsKnown={teamsKnown}
         locked={locked}
         dirty={dirty}
@@ -171,6 +181,7 @@ export function BetControls(props: BetControlsProps) {
 
 function Footer({
   finished,
+  live,
   teamsKnown,
   locked,
   dirty,
@@ -181,6 +192,7 @@ function Footer({
   onSave,
 }: {
   finished: boolean;
+  live: boolean;
   teamsKnown: boolean;
   locked: boolean;
   dirty: boolean;
@@ -190,6 +202,19 @@ function Footer({
   bet: BetControlsProps["bet"];
   onSave: () => void;
 }) {
+  if (live) {
+    return (
+      <div className="flex items-center justify-between border-t border-line pt-2.5 text-sm">
+        <span className="flex items-center gap-1.5 font-semibold text-danger">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-danger" /> LIVE
+        </span>
+        <span className="text-mute">
+          {bet ? `Your pick: ${bet.homePred}–${bet.awayPred}` : "No prediction"}
+        </span>
+      </div>
+    );
+  }
+
   if (finished) {
     return (
       <div className="flex items-center justify-between border-t border-line pt-2.5 text-sm">
