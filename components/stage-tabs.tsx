@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export type StagePanel = {
@@ -13,6 +13,33 @@ export type StagePanel = {
 export function StageTabs({ panels }: { panels: StagePanel[] }) {
   const [active, setActive] = useState(panels[0]?.key);
   const current = panels.find((panel) => panel.key === active) ?? panels[0];
+
+  // Tab / Shift+Tab cycle through the stages (unless you're typing in a field).
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Tab") return;
+      const active = document.activeElement as HTMLElement | null;
+      if (
+        active &&
+        (active.tagName === "INPUT" ||
+          active.tagName === "TEXTAREA" ||
+          active.isContentEditable)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      setActive((current) => {
+        const index = panels.findIndex((panel) => panel.key === current);
+        const length = panels.length;
+        const next = event.shiftKey
+          ? (index - 1 + length) % length
+          : (index + 1) % length;
+        return panels[next].key;
+      });
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [panels]);
 
   return (
     <>

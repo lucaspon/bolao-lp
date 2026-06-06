@@ -30,7 +30,7 @@ function toPill(match: MatchWithBet): PillMatch {
 // fewer on smaller screens. One column per group, pills stacked inside.
 function GroupStage({ matches }: { matches: MatchWithBet[] }) {
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+    <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
       {GROUP_LABELS.map((label) => {
         const list = matches.filter((match) => match.groupLabel === label);
         if (list.length === 0) return null;
@@ -48,7 +48,7 @@ function GroupStage({ matches }: { matches: MatchWithBet[] }) {
               <MatchPill
                 key={match.id}
                 match={toPill(match)}
-                className={index > 0 && index % 2 === 0 ? "mt-4" : undefined}
+                className={index > 0 && index % 2 === 0 ? "mt-0" : undefined}
               />
             ))}
           </div>
@@ -130,7 +130,8 @@ export default async function MatchesPage() {
         <span className="text-ink">0–9</span> set score ·{" "}
         <span className="text-ink">←→</span> side ·{" "}
         <span className="text-ink">Del</span> clear ·{" "}
-        <span className="text-ink">Enter</span> save
+        <span className="text-ink">Enter</span> save ·{" "}
+        <span className="text-ink">Tab</span> switch stage
       </p>
 
       <KeyboardBetProvider>
