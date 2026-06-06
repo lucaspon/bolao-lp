@@ -37,11 +37,19 @@ function GroupStage({ matches }: { matches: MatchWithBet[] }) {
         return (
           <div key={label} className="flex flex-col gap-1.5">
             <div className="flex items-baseline gap-1 px-0.5">
-              <span className="font-display text-base font-bold text-neon">{label}</span>
-              <span className="text-[10px] uppercase tracking-wide text-mute">Group</span>
+              <span className="font-display text-base font-bold text-neon">
+                {label}
+              </span>
+              <span className="text-[10px] uppercase tracking-wide text-mute">
+                Group
+              </span>
             </div>
-            {list.map((match) => (
-              <MatchPill key={match.id} match={toPill(match)} />
+            {list.map((match, index) => (
+              <MatchPill
+                key={match.id}
+                match={toPill(match)}
+                className={index > 0 && index % 2 === 0 ? "mt-4" : undefined}
+              />
             ))}
           </div>
         );
@@ -63,7 +71,9 @@ function KnockoutGrid({ matches }: { matches: MatchWithBet[] }) {
 function StatChip({ value, label }: { value: number | string; label: string }) {
   return (
     <div className="flex items-baseline gap-1.5 rounded-lg border border-line bg-panel px-3 py-1.5">
-      <span className="tabular font-display text-lg font-bold text-neon">{value}</span>
+      <span className="tabular font-display text-lg font-bold text-neon">
+        {value}
+      </span>
       <span className="text-xs text-mute">{label}</span>
     </div>
   );
@@ -75,7 +85,10 @@ export default async function MatchesPage() {
 
   const picks = matches.filter((match) => match.bet).length;
   const openNow = matches.filter((match) => canBet(match)).length;
-  const points = matches.reduce((sum, match) => sum + (match.bet?.points ?? 0), 0);
+  const points = matches.reduce(
+    (sum, match) => sum + (match.bet?.points ?? 0),
+    0,
+  );
 
   const panels: StagePanel[] = STAGES.map((stage) => {
     const list = matches.filter((match) => match.stage === stage.key);
@@ -100,7 +113,8 @@ export default async function MatchesPage() {
             Hey, {user.username} 👋
           </h1>
           <p className="text-sm text-mute">
-            Tap a score to predict. +3 exact, +1 right result. Locks 1h before kickoff.
+            Tap a score to predict. +3 exact, +1 right result. Locks 1h before
+            kickoff.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -112,8 +126,9 @@ export default async function MatchesPage() {
 
       <p className="mb-3 text-xs text-mute">
         ⌨️ Arrows move · <span className="text-ink">Enter</span> to bet ·{" "}
-        <span className="text-ink">↑↓</span> or <span className="text-ink">0–9</span>{" "}
-        set score · <span className="text-ink">←→</span> side ·{" "}
+        <span className="text-ink">↑↓</span> or{" "}
+        <span className="text-ink">0–9</span> set score ·{" "}
+        <span className="text-ink">←→</span> side ·{" "}
         <span className="text-ink">Del</span> clear ·{" "}
         <span className="text-ink">Enter</span> save
       </p>

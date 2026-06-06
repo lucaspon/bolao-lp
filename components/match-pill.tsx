@@ -74,7 +74,7 @@ function ScoreBox({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function MatchPill({ match }: { match: PillMatch }) {
+export function MatchPill({ match, className }: { match: PillMatch; className?: string }) {
   const { bet } = match;
   const finished = match.homeScore !== null && match.awayScore !== null;
   const teamsKnown = !!match.homeTeam && !!match.awayTeam;
@@ -200,6 +200,7 @@ export function MatchPill({ match }: { match: PillMatch }) {
           : kb.selected
             ? "ring-2 ring-neon/50"
             : "",
+        className,
       )}
     >
       <div className="flex items-center justify-between gap-1 text-[11px]">
