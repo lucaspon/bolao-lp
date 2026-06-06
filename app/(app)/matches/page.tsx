@@ -25,11 +25,11 @@ function toPill(match: MatchWithBet): PillMatch {
   };
 }
 
-// Group stage as a wall of columns — 12 across on wide screens (xl+), 6 on
-// laptops (lg), fewer on smaller. One column per group, pills stacked inside.
+// Group stage as a wall of columns — up to 6 across (two rows of groups),
+// fewer on smaller screens. One column per group, pills stacked inside.
 function GroupStage({ matches }: { matches: MatchWithBet[] }) {
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
+    <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
       {GROUP_LABELS.map((label) => {
         const list = matches.filter((match) => match.groupLabel === label);
         if (list.length === 0) return null;
