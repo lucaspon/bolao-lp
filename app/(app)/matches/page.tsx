@@ -5,6 +5,7 @@ import { GROUP_LABELS } from "@/lib/teams";
 import { formatPillKickoff } from "@/lib/format";
 import { MatchPill, type PillMatch } from "@/components/match-pill";
 import { StageTabs, type StagePanel } from "@/components/stage-tabs";
+import { KeyboardBetProvider } from "@/components/keyboard-bet";
 
 export const dynamic = "force-dynamic";
 
@@ -109,7 +110,16 @@ export default async function MatchesPage() {
         </div>
       </div>
 
-      <StageTabs panels={panels} />
+      <p className="mb-3 text-xs text-mute">
+        ⌨️ Arrow keys to move · <span className="text-ink">Enter</span> to bet ·
+        then <span className="text-ink">↑↓</span> score,{" "}
+        <span className="text-ink">←→</span> side ·{" "}
+        <span className="text-ink">Enter</span> to save
+      </p>
+
+      <KeyboardBetProvider>
+        <StageTabs panels={panels} />
+      </KeyboardBetProvider>
     </div>
   );
 }

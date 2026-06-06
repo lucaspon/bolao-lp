@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, sql } from "drizzle-orm";
 import { db } from "./client";
 import { users, matches, bets, type User, type Match } from "./schema";
 import { isAdminEmail, usernameFromEmail } from "../auth/policy";
@@ -42,6 +42,15 @@ export async function getAdminMatches(): Promise<AdminMatchRow[]> {
 export async function getMatchById(id: number): Promise<Match | null> {
   const rows = await db.select().from(matches).where(eq(matches.id, id)).limit(1);
   return rows[0] ?? null;
+}
+
+// How many matches have a final score — the denominator for points-percentage.
+export async function getConcludedMatchCount(): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)`.mapWith(Number) })
+    .from(matches)
+    .where(isNotNull(matches.homeScore));
+  return row.n;
 }
 
 export type LeaderRow = {

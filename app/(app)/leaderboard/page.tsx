@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth/session";
-import { getLeaderboard, type LeaderRow } from "@/lib/db/queries";
+import { getLeaderboard, getConcludedMatchCount, type LeaderRow } from "@/lib/db/queries";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -42,8 +42,16 @@ function Podium({ top, meId }: { top: LeaderRow[]; meId: number }) {
 
 export default async function LeaderboardPage() {
   const me = await requireUser();
-  const rows = await getLeaderboard();
+  const [rows, concluded] = await Promise.all([
+    getLeaderboard(),
+    getConcludedMatchCount(),
+  ]);
   const hasPoints = rows.length > 0 && rows[0].points > 0;
+
+  // Max points available from concluded matches (3 per match = all exact).
+  const maxPoints = concluded * 3;
+  const pct = (points: number) =>
+    maxPoints > 0 ? `${Math.round((points / maxPoints) * 100)}%` : "–";
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -67,6 +75,7 @@ export default async function LeaderboardPage() {
               <th className="px-3 py-2.5 text-right font-semibold">Winner</th>
               <th className="px-3 py-2.5 text-right font-semibold">Picks</th>
               <th className="px-3 py-2.5 text-right font-semibold">Pts</th>
+              <th className="px-3 py-2.5 text-right font-semibold">Pts %</th>
             </tr>
           </thead>
           <tbody>
@@ -91,6 +100,7 @@ export default async function LeaderboardPage() {
                   <td className="tabular px-3 py-2.5 text-right font-display text-lg font-bold text-ink">
                     {row.points}
                   </td>
+                  <td className="tabular px-3 py-2.5 text-right text-mute">{pct(row.points)}</td>
                 </tr>
               );
             })}

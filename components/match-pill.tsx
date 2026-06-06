@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { getTeam } from "@/lib/teams";
 import { useNow } from "@/components/use-now";
+import { usePillKeyboard, type Side } from "@/components/keyboard-bet";
 import { placeBetAction } from "@/app/actions/bets";
 import { isLockedAt } from "@/lib/match";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,8 @@ export type PillMatch = {
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
+const BRAZIL = "BRA";
+
 function shortPlaceholder(text: string | null): string {
   if (!text) return "TBD";
   return text
@@ -33,9 +36,12 @@ function shortPlaceholder(text: string | null): string {
     .replace("Loser ", "L ");
 }
 
-// One side of a pill: flag + 3-letter code, or a short placeholder for an
-// undecided knockout slot.
-function Side({
+function clampScore(prev: string, delta: number): string {
+  const base = prev === "" ? 0 : Number(prev);
+  return String(Math.max(0, Math.min(30, base + delta)));
+}
+
+function Side_({
   code,
   placeholder,
   reverse,
@@ -46,12 +52,7 @@ function Side({
 }) {
   const team = getTeam(code);
   return (
-    <span
-      className={cn(
-        "flex min-w-0 items-center gap-1",
-        reverse && "flex-row-reverse",
-      )}
-    >
+    <span className={cn("flex min-w-0 items-center gap-1", reverse && "flex-row-reverse")}>
       <span className="text-sm leading-none">{team ? team.flag : "⚽"}</span>
       <span
         className={cn(
@@ -77,6 +78,7 @@ export function MatchPill({ match }: { match: PillMatch }) {
   const { bet } = match;
   const finished = match.homeScore !== null && match.awayScore !== null;
   const teamsKnown = !!match.homeTeam && !!match.awayTeam;
+  const isBrazil = match.homeTeam === BRAZIL || match.awayTeam === BRAZIL;
 
   const now = useNow();
   const locked = now === null ? match.initialLocked : isLockedAt(match.kickoffMs, now);
@@ -87,17 +89,30 @@ export function MatchPill({ match }: { match: PillMatch }) {
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [, startTransition] = useTransition();
 
-  function maybeSave() {
-    if (home === "" || away === "") return;
-    const h = Number(home);
-    const a = Number(away);
-    if (h === bet?.homePred && a === bet?.awayPred) return; // unchanged
+  function commit(h: string, a: string) {
+    if (h === "" || a === "") return;
+    const hn = Number(h);
+    const an = Number(a);
+    if (hn === bet?.homePred && an === bet?.awayPred) return; // unchanged
     setStatus("saving");
     startTransition(async () => {
-      const result = await placeBetAction(match.id, h, a);
+      const result = await placeBetAction(match.id, hn, an);
       setStatus(result.ok ? "saved" : "error");
     });
   }
+
+  function adjust(side: Side, delta: number) {
+    if (side === "home") setHome((value) => clampScore(value, delta));
+    else setAway((value) => clampScore(value, delta));
+  }
+
+  const pillRef = useRef<HTMLDivElement>(null);
+  const kb = usePillKeyboard(pillRef, {
+    id: match.id,
+    editable,
+    adjust,
+    save: () => commit(home, away),
+  });
 
   const borderClass = finished
     ? bet?.points === 3
@@ -113,7 +128,6 @@ export function MatchPill({ match }: { match: PillMatch }) {
           ? "border-neon/40"
           : "border-line";
 
-  // Status text for the second line.
   let statusLabel: string;
   if (finished) {
     statusLabel = bet?.points != null ? `FT · +${bet.points}p` : "FT";
@@ -131,44 +145,56 @@ export function MatchPill({ match }: { match: PillMatch }) {
     statusLabel = bet ? "saved" : "open";
   }
 
+  function scoreInput(side: Side, value: string, setValue: (next: string) => void) {
+    return (
+      <input
+        inputMode="numeric"
+        maxLength={2}
+        value={value}
+        aria-label={`${side} score`}
+        onChange={(event) => setValue(event.target.value.replace(/\D/g, ""))}
+        onBlur={() => commit(home, away)}
+        onKeyDown={(event) => event.key === "Enter" && event.currentTarget.blur()}
+        className={cn(
+          "tabular h-5 w-5 rounded border bg-base text-center text-sm font-bold outline-none",
+          kb.editing && kb.activeSide === side
+            ? "border-neon ring-1 ring-neon"
+            : "border-line focus:border-neon",
+        )}
+      />
+    );
+  }
+
   return (
-    <div className={cn("rounded-lg border bg-panel px-2 py-1.5", borderClass)}>
+    <div
+      ref={pillRef}
+      data-bet-pill=""
+      tabIndex={-1}
+      onMouseDown={() => kb.select?.(match.id)}
+      className={cn(
+        "rounded-lg px-2 py-1.5 outline-none transition",
+        isBrazil ? "brazil-border" : cn("border bg-panel", borderClass),
+        kb.editing
+          ? "ring-2 ring-neon"
+          : kb.selected
+            ? "ring-2 ring-neon/50"
+            : "",
+      )}
+    >
       <div className="flex items-center justify-between gap-1 text-[11px]">
-        <Side code={match.homeTeam} placeholder={match.homePlaceholder} />
+        <Side_ code={match.homeTeam} placeholder={match.homePlaceholder} />
 
         <span className="flex shrink-0 items-center">
-          {editable ? (
-            <input
-              inputMode="numeric"
-              maxLength={2}
-              value={home}
-              aria-label="home score"
-              onChange={(event) => setHome(event.target.value.replace(/\D/g, ""))}
-              onBlur={maybeSave}
-              onKeyDown={(event) => event.key === "Enter" && event.currentTarget.blur()}
-              className="tabular h-5 w-5 rounded border border-line bg-base text-center text-sm font-bold outline-none focus:border-neon"
-            />
-          ) : (
+          {editable ? scoreInput("home", home, setHome) : (
             <ScoreBox>{finished ? match.homeScore : (bet?.homePred ?? "–")}</ScoreBox>
           )}
           <span className="px-0.5 text-mute">×</span>
-          {editable ? (
-            <input
-              inputMode="numeric"
-              maxLength={2}
-              value={away}
-              aria-label="away score"
-              onChange={(event) => setAway(event.target.value.replace(/\D/g, ""))}
-              onBlur={maybeSave}
-              onKeyDown={(event) => event.key === "Enter" && event.currentTarget.blur()}
-              className="tabular h-5 w-5 rounded border border-line bg-base text-center text-sm font-bold outline-none focus:border-neon"
-            />
-          ) : (
+          {editable ? scoreInput("away", away, setAway) : (
             <ScoreBox>{finished ? match.awayScore : (bet?.awayPred ?? "–")}</ScoreBox>
           )}
         </span>
 
-        <Side code={match.awayTeam} placeholder={match.awayPlaceholder} reverse />
+        <Side_ code={match.awayTeam} placeholder={match.awayPlaceholder} reverse />
       </div>
 
       <div className="mt-1 truncate text-center text-[10px] text-mute">

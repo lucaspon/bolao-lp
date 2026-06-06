@@ -67,3 +67,29 @@ body {
 ::selection {
   background: rgba(52, 226, 122, 0.3);
 }
+
+/* Animated Brazil-flag border for matches featuring Brazil. */
+.brazil-border {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--panel), var(--panel)) padding-box,
+    linear-gradient(90deg, #009b3a, #ffdf00, #ffffff, #3b6cff, #009b3a) border-box;
+  background-size:
+    100% 100%,
+    300% 100%;
+  animation: brazil-flow 4s linear infinite;
+}
+
+@keyframes brazil-flow {
+  to {
+    background-position:
+      0 0,
+      300% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brazil-border {
+    animation: none;
+  }
+}
