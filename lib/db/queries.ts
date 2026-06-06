@@ -98,6 +98,10 @@ export async function upsertBet(
     });
 }
 
+export async function deleteBet(userId: number, matchId: number): Promise<void> {
+  await db.delete(bets).where(and(eq(bets.userId, userId), eq(bets.matchId, matchId)));
+}
+
 // Creates the user on first login; refreshes admin status from env on each login.
 export async function upsertUser(email: string): Promise<User> {
   const [row] = await db

@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { getTeam } from "@/lib/teams";
 import { useNow } from "@/components/use-now";
 import { usePillKeyboard, type Side } from "@/components/keyboard-bet";
-import { placeBetAction } from "@/app/actions/bets";
+import { placeBetAction, clearBetAction } from "@/app/actions/bets";
 import { isLockedAt } from "@/lib/match";
 import { cn } from "@/lib/utils";
 
@@ -106,12 +106,33 @@ export function MatchPill({ match }: { match: PillMatch }) {
     else setAway((value) => clampScore(value, delta));
   }
 
+  function setScore(side: Side, value: number) {
+    if (side === "home") setHome(String(value));
+    else setAway(String(value));
+  }
+
+  function clear() {
+    setHome("");
+    setAway("");
+    if (!bet) {
+      setStatus("idle");
+      return;
+    }
+    setStatus("saving");
+    startTransition(async () => {
+      const result = await clearBetAction(match.id);
+      setStatus(result.ok ? "idle" : "error");
+    });
+  }
+
   const pillRef = useRef<HTMLDivElement>(null);
   const kb = usePillKeyboard(pillRef, {
     id: match.id,
     editable,
     adjust,
+    setScore,
     save: () => commit(home, away),
+    clear,
   });
 
   const borderClass = finished

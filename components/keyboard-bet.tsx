@@ -19,7 +19,9 @@ type PillHandle = {
   element: HTMLElement;
   editable: boolean;
   adjust: (side: Side, delta: number) => void;
+  setScore: (side: Side, value: number) => void;
   save: () => void;
+  clear: () => void;
 };
 
 type KeyboardContext = {
@@ -131,7 +133,13 @@ export function KeyboardBetProvider({ children }: { children: ReactNode }) {
 
   function onKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
     const key = event.key;
-    if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", "Escape"].includes(key)) {
+    const isDigit = key.length === 1 && key >= "0" && key <= "9";
+    const isClear = key === "Delete" || key === "Backspace";
+    if (
+      !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", "Escape"].includes(key) &&
+      !isDigit &&
+      !isClear
+    ) {
       return;
     }
 
@@ -152,7 +160,13 @@ export function KeyboardBetProvider({ children }: { children: ReactNode }) {
         return;
       }
       event.preventDefault();
-      if (key === "ArrowLeft") setActiveSide("home");
+      if (isClear) {
+        current.clear();
+      } else if (isDigit) {
+        // Type a digit to set the active side, then jump to the other side.
+        current.setScore(activeSide, Number(key));
+        setActiveSide(activeSide === "home" ? "away" : "home");
+      } else if (key === "ArrowLeft") setActiveSide("home");
       else if (key === "ArrowRight") setActiveSide("away");
       else if (key === "ArrowUp") current.adjust(activeSide, 1);
       else if (key === "ArrowDown") current.adjust(activeSide, -1);
@@ -164,7 +178,14 @@ export function KeyboardBetProvider({ children }: { children: ReactNode }) {
     }
 
     // browse mode
-    if (key === "Escape") return;
+    if (key === "Escape" || isDigit) return;
+    if (isClear) {
+      if (current?.editable) {
+        event.preventDefault();
+        current.clear();
+      }
+      return;
+    }
     if (key === "Enter") {
       if (current?.editable) {
         event.preventDefault();
@@ -224,18 +245,24 @@ export function usePillKeyboard(
     id: number;
     editable: boolean;
     adjust: (side: Side, delta: number) => void;
+    setScore: (side: Side, value: number) => void;
     save: () => void;
+    clear: () => void;
   },
 ) {
   const ctx = useContext(Ctx);
   const register = ctx?.register;
   const adjustRef = useRef(args.adjust);
+  const setScoreRef = useRef(args.setScore);
   const saveRef = useRef(args.save);
+  const clearRef = useRef(args.clear);
 
   // Keep the latest handlers without re-registering each render.
   useEffect(() => {
     adjustRef.current = args.adjust;
+    setScoreRef.current = args.setScore;
     saveRef.current = args.save;
+    clearRef.current = args.clear;
   });
 
   // Depend only on the stable `register` callback — not the whole context value,
@@ -248,7 +275,9 @@ export function usePillKeyboard(
       element,
       editable: args.editable,
       adjust: (side, delta) => adjustRef.current(side, delta),
+      setScore: (side, value) => setScoreRef.current(side, value),
       save: () => saveRef.current(),
+      clear: () => clearRef.current(),
     });
   }, [register, ref, args.id, args.editable]);
 

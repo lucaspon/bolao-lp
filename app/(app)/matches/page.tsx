@@ -111,10 +111,11 @@ export default async function MatchesPage() {
       </div>
 
       <p className="mb-3 text-xs text-mute">
-        ⌨️ Arrow keys to move · <span className="text-ink">Enter</span> to bet ·
-        then <span className="text-ink">↑↓</span> score,{" "}
-        <span className="text-ink">←→</span> side ·{" "}
-        <span className="text-ink">Enter</span> to save
+        ⌨️ Arrows move · <span className="text-ink">Enter</span> to bet ·{" "}
+        <span className="text-ink">↑↓</span> or <span className="text-ink">0–9</span>{" "}
+        set score · <span className="text-ink">←→</span> side ·{" "}
+        <span className="text-ink">Del</span> clear ·{" "}
+        <span className="text-ink">Enter</span> save
       </p>
 
       <KeyboardBetProvider>
