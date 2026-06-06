@@ -13,6 +13,17 @@ export function formatKickoff(date: Date | string | number): string {
   }).format(new Date(date));
 }
 
+// Compact label for the match pills, e.g. "11 Jun 13:00".
+export function formatPillKickoff(date: Date | string | number): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: DISPLAY_TZ,
+  }).format(new Date(date));
+}
+
 export function formatDay(date: Date | string | number): string {
   return new Intl.DateTimeFormat("en-GB", {
     weekday: "short",

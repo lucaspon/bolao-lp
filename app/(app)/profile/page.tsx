@@ -26,7 +26,7 @@ export default async function ProfilePage() {
     scored.length > 0 ? Math.round(((exact + correct) / scored.length) * 100) : null;
 
   return (
-    <div>
+    <div className="mx-auto max-w-3xl">
       <h1 className="mb-1 font-display text-2xl font-bold tracking-wide">My Bets</h1>
       <p className="mb-5 text-sm text-mute">Signed in as @{user.username}</p>
 

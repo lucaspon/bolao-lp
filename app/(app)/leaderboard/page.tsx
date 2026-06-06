@@ -46,7 +46,7 @@ export default async function LeaderboardPage() {
   const hasPoints = rows.length > 0 && rows[0].points > 0;
 
   return (
-    <div>
+    <div className="mx-auto max-w-3xl">
       <h1 className="mb-5 font-display text-2xl font-bold tracking-wide">Leaderboard</h1>
 
       {hasPoints ? (

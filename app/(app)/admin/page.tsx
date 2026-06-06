@@ -41,7 +41,7 @@ export default async function AdminPage() {
   }).filter((panel) => panel.count > 0);
 
   return (
-    <div>
+    <div className="mx-auto max-w-5xl">
       <div className="mb-5">
         <h1 className="font-display text-2xl font-bold tracking-wide">Admin · Fixtures</h1>
         <p className="text-sm text-mute">
