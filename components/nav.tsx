@@ -16,9 +16,9 @@ import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/matches", label: "Matches", icon: ListChecks },
+  { href: "/regras", label: "Regras", icon: BookOpen },
   { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
   { href: "/profile", label: "My Bets", icon: User },
-  { href: "/regras", label: "Regras", icon: BookOpen },
 ];
 
 export function Nav({

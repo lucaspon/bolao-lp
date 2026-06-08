@@ -193,7 +193,18 @@ export function LeaderboardView({
                     </td>
                   )}
                   <td className="tabular px-3 py-2.5 text-right text-mute">
-                    {row.stakeCents > 0 ? brl(row.stakeCents) : "–"}
+                    {row.stakeCents > 0 ? (
+                      <>
+                        {brl(row.stakeCents)}
+                        {row.stakeW1Cents < row.stakeCents && (
+                          <span className="block text-[10px] text-mute/70">
+                            pré {brl(row.stakeW1Cents)}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      "–"
+                    )}
                   </td>
                   <td className="tabular px-3 py-2.5 text-right font-display text-base font-bold text-gold">
                     {payouts.get(row.userId) ? brl(payouts.get(row.userId)!) : "–"}

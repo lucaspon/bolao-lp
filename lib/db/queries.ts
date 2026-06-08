@@ -25,22 +25,6 @@ export async function getMatchesForUser(userId: number): Promise<MatchWithBet[]>
   }));
 }
 
-export type AdminMatchRow = { match: Match; betCount: number };
-
-// All fixtures with how many bets each has — used by the admin page.
-export async function getAdminMatches(): Promise<AdminMatchRow[]> {
-  const rows = await db
-    .select({
-      match: matches,
-      betCount: sql<number>`count(${bets.id})`.mapWith(Number),
-    })
-    .from(matches)
-    .leftJoin(bets, eq(bets.matchId, matches.id))
-    .groupBy(matches.id)
-    .orderBy(asc(matches.kickoffAt));
-  return rows;
-}
-
 export async function getMatchCountsByStage(): Promise<Record<string, number>> {
   const rows = await db
     .select({ stage: matches.stage, n: sql<number>`count(*)`.mapWith(Number) })
