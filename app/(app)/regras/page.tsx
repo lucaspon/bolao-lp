@@ -1,0 +1,135 @@
+import { requireUser } from "@/lib/auth/session";
+import { STAGES, STAGE_WEIGHT } from "@/lib/match";
+import { ENTRY_MIN_CENTS, ENTRY_MAX_TOTAL_CENTS } from "@/lib/staking";
+
+const brl = (cents: number) => `R$${(cents / 100).toFixed(0)}`;
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl border border-line bg-panel p-5">
+      <h2 className="mb-3 font-display text-lg font-bold tracking-wide text-neon">{title}</h2>
+      <div className="space-y-3 text-sm leading-relaxed text-ink/90">{children}</div>
+    </section>
+  );
+}
+
+export default async function RegrasPage() {
+  await requireUser();
+
+  return (
+    <div className="mx-auto max-w-2xl">
+      <h1 className="mb-1 font-display text-2xl font-bold tracking-wide">Regras do Bolão</h1>
+      <p className="mb-6 text-sm text-mute">
+        Copa do Mundo 2026 · tudo o que você precisa saber em um lugar só.
+      </p>
+
+      <div className="space-y-4">
+        <Section title="A ideia">
+          <p>
+            Você dá um palpite no <strong>placar</strong> de cada jogo e ganha pontos por acerto.
+            No fim, os <strong>3 melhores</strong> dividem o bolo de dinheiro (o “pote”). Quanto
+            melhor você prevê — e quanto mais aposta — maior o prêmio.
+          </p>
+        </Section>
+
+        <Section title="Pontuação">
+          <ul className="list-disc space-y-1 pl-5">
+            <li>
+              <strong className="text-gold">+3</strong> — placar exato (ex.: você cravou 2–1 e
+              terminou 2–1).
+            </li>
+            <li>
+              <strong className="text-neon">+1</strong> — resultado certo (acertou o vencedor, ou
+              previu empate e deu empate), sem o placar exato.
+            </li>
+            <li>
+              <strong>0</strong> — errou o resultado.
+            </li>
+          </ul>
+          <p>
+            Você pode criar e editar seus palpites até <strong>1 hora antes</strong> de cada jogo
+            começar. Depois disso, o palpite tranca.
+          </p>
+        </Section>
+
+        <Section title="Cada fase vale mais">
+          <p>
+            O mata-mata pesa mais que a fase de grupos. Os pontos de cada jogo são multiplicados
+            conforme a fase:
+          </p>
+          <div className="overflow-hidden rounded-xl border border-line">
+            <table className="w-full text-sm">
+              <tbody>
+                {STAGES.map((stage) => (
+                  <tr key={stage.key} className="border-b border-line last:border-0">
+                    <td className="px-3 py-2 text-mute">{stage.label}</td>
+                    <td className="tabular px-3 py-2 text-right font-display font-bold text-ink">
+                      ×{STAGE_WEIGHT[stage.key]}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-mute">
+            Exemplo: um placar exato na <strong>final</strong> vale 3 × {STAGE_WEIGHT.final} ={" "}
+            <strong className="text-ink">{3 * STAGE_WEIGHT.final} pontos</strong> — o equivalente a{" "}
+            {STAGE_WEIGHT.final} acertos exatos na fase de grupos.
+          </p>
+        </Section>
+
+        <Section title="A aposta (PIX)">
+          <ul className="list-disc space-y-1 pl-5">
+            <li>
+              Aposte de <strong>{brl(ENTRY_MIN_CENTS)}</strong> a{" "}
+              <strong>{brl(ENTRY_MAX_TOTAL_CENTS)}</strong> no total, via PIX, na aba{" "}
+              <strong>My Bets</strong>.
+            </li>
+            <li>
+              <strong>Duas janelas:</strong> aposte livremente <strong>antes</strong> da fase de
+              grupos começar; depois, há uma janela de <strong>reforço</strong> entre o fim da fase
+              de grupos e o início do mata-mata (respeitando o limite total).
+            </li>
+            <li>
+              O pagamento é confirmado <strong>automaticamente</strong> — assim que o PIX cai, sua
+              aposta aparece atualizada.
+            </li>
+          </ul>
+          <p className="rounded-lg bg-base p-3 text-mute">
+            ⚠️ A maquininha (Asaas) cobra uma <strong>taxa de R$0,99 por PIX recebido</strong>. Ou
+            seja, de uma aposta de {brl(ENTRY_MIN_CENTS)} entram ~R${(ENTRY_MIN_CENTS / 100 - 0.99).toFixed(2)} no
+            pote. A taxa é da operadora, não fica com ninguém do bolão.
+          </p>
+        </Section>
+
+        <Section title="Prêmios — só o top 3">
+          <p>
+            Apenas os <strong>3 primeiros colocados</strong> (em pontos, entre quem apostou) levam
+            prêmio. Os demais recebem <strong>R$0</strong>. O dinheiro <em>não</em> compra posição
+            no pódio — só os melhores palpiteiros sobem.
+          </p>
+          <p>O pote é dividido entre os 3 proporcionalmente a (pontos × aposta):</p>
+          <p className="rounded-lg bg-base p-3 text-center font-mono text-xs text-ink">
+            prêmio = pote × (pontos × aposta) ÷ soma dos (pontos × aposta) do top 3
+          </p>
+          <p className="text-mute">
+            Exemplo — pote de R$500, top 3: Ana (50 pts, apostou R$50), Bia (45 pts, R$30), Caio
+            (40 pts, R$100). Pesos 2500 / 1350 / 4000. Prêmios ≈ <strong>R$159</strong> /{" "}
+            <strong>R$86</strong> / <strong>R$255</strong>. Apostar mais aumenta seu prêmio — desde
+            que você termine no pódio.
+          </p>
+        </Section>
+
+        <Section title="Pagamento e transparência">
+          <p>
+            O pote fica na conta Asaas do organizador e é distribuído aos 3 vencedores ao fim do
+            torneio. O placar de quem pagou (e quanto) e o pote total ficam visíveis para todos.
+          </p>
+          <p className="text-mute">
+            É um bolão interno e voluntário entre colegas — sem comissão para o organizador.
+          </p>
+        </Section>
+      </div>
+    </div>
+  );
+}
