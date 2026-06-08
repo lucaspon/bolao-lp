@@ -15,12 +15,16 @@ function createDb(): DB {
     throw new Error("DATABASE_URL is not set. Run via `doppler run` or set it in your env.");
   }
   // `prepare: false` is required for Supabase's transaction pooler (port 6543).
-  // `max: 1` keeps each serverless instance to a single connection so we don't
-  // exhaust the pooler; idle connections are released after 20s.
+  // `max` must comfortably exceed the number of queries a single request fires
+  // concurrently (the leaderboard fans out to ~5 via Promise.all). With max:1
+  // those concurrent queries pipeline onto one pgBouncer-backed connection and
+  // deadlock under cross-region latency, stalling the whole warm instance —
+  // including link prefetches, so every navigation appears frozen. The
+  // transaction pooler multiplexes these client connections safely.
   const client =
     globalForDb.pgClient ??
-    postgres(connectionString, { prepare: false, max: 1, idle_timeout: 20 });
-  if (process.env.NODE_ENV !== "production") globalForDb.pgClient = client;
+    postgres(connectionString, { prepare: false, max: 10, idle_timeout: 20 });
+  globalForDb.pgClient = client;
   return drizzle(client, { schema });
 }
 
