@@ -1,8 +1,10 @@
 import { requireUser } from "@/lib/auth/session";
+import { getMatchCountsByStage } from "@/lib/db/queries";
 import { STAGES, STAGE_WEIGHT } from "@/lib/match";
 import { ENTRY_MIN_CENTS, ENTRY_MAX_TOTAL_CENTS } from "@/lib/staking";
 
 const brl = (cents: number) => `R$${(cents / 100).toFixed(0)}`;
+const MAX_PER_MATCH = 3; // exact score
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -15,6 +17,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default async function RegrasPage() {
   await requireUser();
+  const counts = await getMatchCountsByStage();
+  const maxPoints = (stageKey: (typeof STAGES)[number]["key"]) =>
+    (counts[stageKey] ?? 0) * MAX_PER_MATCH * STAGE_WEIGHT[stageKey];
+  const totalMaxPoints = STAGES.reduce((sum, stage) => sum + maxPoints(stage.key), 0);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -59,22 +65,48 @@ export default async function RegrasPage() {
           </p>
           <div className="overflow-hidden rounded-xl border border-line">
             <table className="w-full text-sm">
+              <thead className="bg-base text-xs uppercase tracking-wide text-mute">
+                <tr>
+                  <th className="px-3 py-2 text-left font-semibold">Fase</th>
+                  <th className="px-3 py-2 text-right font-semibold">Jogos</th>
+                  <th className="px-3 py-2 text-right font-semibold">Mult.</th>
+                  <th className="px-3 py-2 text-right font-semibold">Máx. pontos</th>
+                </tr>
+              </thead>
               <tbody>
                 {STAGES.map((stage) => (
-                  <tr key={stage.key} className="border-b border-line last:border-0">
+                  <tr key={stage.key} className="border-t border-line">
                     <td className="px-3 py-2 text-mute">{stage.label}</td>
+                    <td className="tabular px-3 py-2 text-right text-mute">
+                      {counts[stage.key] ?? 0}
+                    </td>
                     <td className="tabular px-3 py-2 text-right font-display font-bold text-ink">
                       ×{STAGE_WEIGHT[stage.key]}
                     </td>
+                    <td className="tabular px-3 py-2 text-right font-display font-bold text-gold">
+                      {maxPoints(stage.key)}
+                    </td>
                   </tr>
                 ))}
+                <tr className="border-t border-line bg-base/60">
+                  <td className="px-3 py-2 font-semibold text-ink">Total</td>
+                  <td className="tabular px-3 py-2 text-right text-mute">
+                    {STAGES.reduce((sum, stage) => sum + (counts[stage.key] ?? 0), 0)}
+                  </td>
+                  <td className="px-3 py-2"></td>
+                  <td className="tabular px-3 py-2 text-right font-display font-bold text-gold">
+                    {totalMaxPoints}
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
           <p className="text-mute">
-            Exemplo: um placar exato na <strong>final</strong> vale 3 × {STAGE_WEIGHT.final} ={" "}
-            <strong className="text-ink">{3 * STAGE_WEIGHT.final} pontos</strong> — o equivalente a{" "}
-            {STAGE_WEIGHT.final} acertos exatos na fase de grupos.
+            “Máx. pontos” = jogos × 3 (placar exato) × multiplicador. Ex.: um placar exato na{" "}
+            <strong>final</strong> vale 3 × {STAGE_WEIGHT.final} ={" "}
+            <strong className="text-ink">{3 * STAGE_WEIGHT.final} pontos</strong>. A fase de grupos
+            vale {Math.round((maxPoints("group") / totalMaxPoints) * 100)}% de todos os pontos —
+            o resto sai no mata-mata.
           </p>
         </Section>
 

@@ -41,6 +41,16 @@ export async function getAdminMatches(): Promise<AdminMatchRow[]> {
   return rows;
 }
 
+export async function getMatchCountsByStage(): Promise<Record<string, number>> {
+  const rows = await db
+    .select({ stage: matches.stage, n: sql<number>`count(*)`.mapWith(Number) })
+    .from(matches)
+    .groupBy(matches.stage);
+  const counts: Record<string, number> = {};
+  for (const row of rows) counts[row.stage] = row.n;
+  return counts;
+}
+
 export async function getMatchById(id: number): Promise<Match | null> {
   const rows = await db.select().from(matches).where(eq(matches.id, id)).limit(1);
   return rows[0] ?? null;
