@@ -123,6 +123,13 @@ export default async function RegrasPage() {
               de grupos e o início do mata-mata (respeitando o limite total).
             </li>
             <li>
+              <strong>Aposta travada por fase:</strong> o que você apostou{" "}
+              <strong>antes dos grupos</strong> vale para seus <strong>pontos de grupos</strong>; o
+              reforço vale para seus <strong>pontos de mata-mata</strong>. Aumentar a aposta depois{" "}
+              <em>não</em> infla os pontos que você já fez nos grupos — então vale a pena apostar
+              firme desde o começo, e não esperar para ver como você se sai.
+            </li>
+            <li>
               O pagamento é confirmado <strong>automaticamente</strong> — assim que o PIX cai, sua
               aposta aparece atualizada.
             </li>
@@ -140,15 +147,20 @@ export default async function RegrasPage() {
             prêmio. Os demais recebem <strong>R$0</strong>. O dinheiro <em>não</em> compra posição
             no pódio — só os melhores palpiteiros sobem.
           </p>
-          <p>O pote é dividido entre os 3 proporcionalmente a (pontos × aposta):</p>
+          <p>
+            O pote é dividido entre os 3 proporcionalmente ao seu <strong>peso</strong>, que trava
+            a aposta por fase:
+          </p>
           <p className="rounded-lg bg-base p-3 text-center font-mono text-xs text-ink">
-            prêmio = pote × (pontos × aposta) ÷ soma dos (pontos × aposta) do top 3
+            peso = (pts de grupos × aposta pré-grupos) + (pts de mata-mata × aposta total)
+            <br />
+            prêmio = pote × peso ÷ soma dos pesos do top 3
           </p>
           <p className="text-mute">
-            Exemplo — pote de R$500, top 3: Ana (50 pts, apostou R$50), Bia (45 pts, R$30), Caio
-            (40 pts, R$100). Pesos 2500 / 1350 / 4000. Prêmios ≈ <strong>R$159</strong> /{" "}
-            <strong>R$86</strong> / <strong>R$255</strong>. Apostar mais aumenta seu prêmio — desde
-            que você termine no pódio.
+            Exemplo (apostas únicas, sem reforço) — pote de R$500, top 3: Ana (50 pts, R$50), Bia
+            (45 pts, R$30), Caio (40 pts, R$100). Pesos 2500 / 1350 / 4000. Prêmios ≈{" "}
+            <strong>R$159</strong> / <strong>R$86</strong> / <strong>R$255</strong>. Apostar mais
+            aumenta seu prêmio — desde que você termine no pódio.
           </p>
         </Section>
 

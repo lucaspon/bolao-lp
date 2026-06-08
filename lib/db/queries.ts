@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
 import { db } from "./client";
 import { users, matches, bets, payments, type User, type Match, type Payment } from "./schema";
 import { isAdminEmail, usernameFromEmail } from "../auth/policy";
@@ -76,25 +76,40 @@ export async function getLiveMatchCount(): Promise<number> {
 export type LeaderRow = {
   userId: number;
   username: string;
-  points: number; // official: finished matches only
+  points: number; // official total (finished matches)
   exact: number;
   correct: number;
   picks: number;
-  livePoints: number; // provisional: includes in-play matches
+  livePoints: number; // provisional total (incl. in-play)
+  groupPoints: number;
+  koPoints: number;
+  groupLivePoints: number;
+  koLivePoints: number;
   stakeCents: number; // total paid buy-in
+  stakeW1Cents: number; // paid before the group stage started
 };
 
-// Provisional points: scores in-play AND finished matches using their current score.
-const livePointsExpr = sql<number>`coalesce(sum(
-  case when ${matches.status} in ('live', 'finished')
-            and ${matches.homeScore} is not null and ${matches.awayScore} is not null then
-    (case when ${bets.homePred} = ${matches.homeScore} and ${bets.awayPred} = ${matches.awayScore} then 3
-          when sign(${bets.homePred} - ${bets.awayPred}) = sign(${matches.homeScore} - ${matches.awayScore}) then 1
-          else 0 end) * ${matches.pointsMultiplier}
-  else 0 end), 0)`;
+// Provisional points (in-play + finished), optionally scoped to a stage filter.
+function liveExpr(stageFilter: SQL) {
+  return sql<number>`coalesce(sum(
+    case when ${matches.status} in ('live', 'finished')
+              and ${matches.homeScore} is not null and ${matches.awayScore} is not null ${stageFilter} then
+      (case when ${bets.homePred} = ${matches.homeScore} and ${bets.awayPred} = ${matches.awayScore} then 3
+            when sign(${bets.homePred} - ${bets.awayPred}) = sign(${matches.homeScore} - ${matches.awayScore}) then 1
+            else 0 end) * ${matches.pointsMultiplier}
+    else 0 end), 0)`;
+}
 
-// Standings: official points per user (+ a provisional total incl. in-play matches).
+const isGroup = sql`and ${matches.stage} = 'group'`;
+const isKnockout = sql`and ${matches.stage} <> 'group'`;
+
+// Standings + the per-phase splits used by the phase-locked payout.
 export async function getLeaderboard(): Promise<LeaderRow[]> {
+  const bounds = await getStakingBounds();
+  const firstGroup = Number.isFinite(bounds.firstGroupMs)
+    ? new Date(bounds.firstGroupMs)
+    : new Date(8640000000000000); // far future → everything counts as pre-group
+
   return db
     .select({
       userId: users.id,
@@ -103,8 +118,15 @@ export async function getLeaderboard(): Promise<LeaderRow[]> {
       exact: sql<number>`count(*) filter (where ${bets.points} = 3 * ${matches.pointsMultiplier})`.mapWith(Number),
       correct: sql<number>`count(*) filter (where ${bets.points} = 1 * ${matches.pointsMultiplier})`.mapWith(Number),
       picks: sql<number>`count(${bets.id})`.mapWith(Number),
-      livePoints: livePointsExpr.mapWith(Number),
+      livePoints: liveExpr(sql``).mapWith(Number),
+      groupPoints: sql<number>`coalesce(sum(${bets.points}) filter (where ${matches.stage} = 'group'), 0)`.mapWith(Number),
+      koPoints: sql<number>`coalesce(sum(${bets.points}) filter (where ${matches.stage} <> 'group'), 0)`.mapWith(Number),
+      groupLivePoints: liveExpr(isGroup).mapWith(Number),
+      koLivePoints: liveExpr(isKnockout).mapWith(Number),
       stakeCents: sql<number>`coalesce((select sum(${payments.amountCents}) from ${payments} where ${payments.userId} = ${users.id} and ${payments.status} = 'paid'), 0)`.mapWith(
+        Number,
+      ),
+      stakeW1Cents: sql<number>`coalesce((select sum(${payments.amountCents}) from ${payments} where ${payments.userId} = ${users.id} and ${payments.status} = 'paid' and ${payments.createdAt} < ${firstGroup}), 0)`.mapWith(
         Number,
       ),
     })
