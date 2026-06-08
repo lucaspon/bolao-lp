@@ -14,9 +14,12 @@ function createDb(): DB {
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set. Run via `doppler run` or set it in your env.");
   }
-  // `prepare: false` keeps us compatible with connection poolers (Neon's pooled
-  // endpoint / PgBouncer). One client is reused across hot reloads in dev.
-  const client = globalForDb.pgClient ?? postgres(connectionString, { prepare: false });
+  // `prepare: false` is required for Supabase's transaction pooler (port 6543).
+  // `max: 1` keeps each serverless instance to a single connection so we don't
+  // exhaust the pooler; idle connections are released after 20s.
+  const client =
+    globalForDb.pgClient ??
+    postgres(connectionString, { prepare: false, max: 1, idle_timeout: 20 });
   if (process.env.NODE_ENV !== "production") globalForDb.pgClient = client;
   return drizzle(client, { schema });
 }
