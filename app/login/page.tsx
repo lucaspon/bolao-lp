@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
-import { Trophy, ArrowRight, Mail, KeyRound } from "lucide-react";
+import { Trophy, ArrowRight, Mail } from "lucide-react";
 import { requestCodeAction, verifyCodeAction } from "@/app/actions/auth";
 
 export default function LoginPage() {
@@ -87,21 +87,18 @@ export default function LoginPage() {
             <label className="text-sm font-medium text-ink" htmlFor="code">
               Enter the code sent to <span className="text-neon">{email}</span>
             </label>
-            <div className="flex items-center gap-2 rounded-lg border border-line bg-base px-3">
-              <KeyRound size={16} className="text-mute" />
-              <input
-                id="code"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                required
-                autoFocus
-                value={code}
-                onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
-                placeholder="••••••"
-                className="tabular h-12 flex-1 bg-transparent text-center text-2xl font-bold tracking-[0.5em] outline-none placeholder:text-mute"
-              />
-            </div>
+            <input
+              id="code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              required
+              autoFocus
+              value={code}
+              onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
+              placeholder="••••••"
+              className="tabular h-12 w-full rounded-lg border border-line bg-base text-center text-2xl font-bold tracking-[0.5em] indent-[0.5em] outline-none placeholder:text-mute focus:border-neon"
+            />
             {error && <p className="text-sm text-danger">{error}</p>}
             <button
               type="submit"
