@@ -56,6 +56,7 @@ async function getPoolCustomerId(): Promise<string> {
     body: JSON.stringify({
       name: "Bolão LCM (pool)",
       externalReference: POOL_CUSTOMER_REF,
+      notificationDisabled: true, // avoid Asaas "mensageria" notification fees
       ...(cpf ? { cpfCnpj: cpf } : {}),
     }),
   });
