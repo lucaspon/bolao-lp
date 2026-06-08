@@ -90,9 +90,12 @@ const isKnockout = sql`and ${matches.stage} <> 'group'`;
 // Standings + the per-phase splits used by the phase-locked payout.
 export async function getLeaderboard(): Promise<LeaderRow[]> {
   const bounds = await getStakingBounds();
-  const firstGroup = Number.isFinite(bounds.firstGroupMs)
-    ? new Date(bounds.firstGroupMs)
-    : new Date(8640000000000000); // far future → everything counts as pre-group
+  // Bind as an ISO string (postgres.js won't bind a raw Date) and cast in SQL.
+  const firstGroupIso = (
+    Number.isFinite(bounds.firstGroupMs)
+      ? new Date(bounds.firstGroupMs)
+      : new Date(8640000000000000) // far future → everything counts as pre-group
+  ).toISOString();
 
   return db
     .select({
@@ -110,7 +113,7 @@ export async function getLeaderboard(): Promise<LeaderRow[]> {
       stakeCents: sql<number>`coalesce((select sum(${payments.amountCents}) from ${payments} where ${payments.userId} = ${users.id} and ${payments.status} = 'paid'), 0)`.mapWith(
         Number,
       ),
-      stakeW1Cents: sql<number>`coalesce((select sum(${payments.amountCents}) from ${payments} where ${payments.userId} = ${users.id} and ${payments.status} = 'paid' and ${payments.createdAt} < ${firstGroup}), 0)`.mapWith(
+      stakeW1Cents: sql<number>`coalesce((select sum(${payments.amountCents}) from ${payments} where ${payments.userId} = ${users.id} and ${payments.status} = 'paid' and ${payments.createdAt} < ${firstGroupIso}::timestamptz), 0)`.mapWith(
         Number,
       ),
     })
