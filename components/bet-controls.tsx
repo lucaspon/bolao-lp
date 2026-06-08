@@ -6,6 +6,7 @@ import { TeamBadge } from "@/components/team-badge";
 import { useNow } from "@/components/use-now";
 import { placeBetAction } from "@/app/actions/bets";
 import { isLockedAt } from "@/lib/match";
+import { scoreBet } from "@/lib/scoring";
 import type { MatchStatus } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 
@@ -25,19 +26,18 @@ export type BetControlsProps = {
 
 const MAX_SCORE = 30;
 
-function PointsBadge({ points }: { points: number | null }) {
-  if (points === null) return null;
-  if (points === 3) {
+function PointsBadge({ base, points }: { base: number; points: number }) {
+  if (base === 3) {
     return (
       <span className="rounded-md bg-gold/15 px-2 py-0.5 text-xs font-bold tracking-wide text-gold">
-        EXACT · +3
+        EXACT · +{points}
       </span>
     );
   }
-  if (points === 1) {
+  if (base === 1) {
     return (
       <span className="rounded-md bg-neon/15 px-2 py-0.5 text-xs font-bold text-neon">
-        WINNER · +1
+        WINNER · +{points}
       </span>
     );
   }
@@ -90,6 +90,10 @@ export function BetControls(props: BetControlsProps) {
   const live = props.status === "live";
   const showActual = finished || live;
   const teamsKnown = !!props.homeTeam && !!props.awayTeam;
+  const base =
+    finished && bet && props.homeScore !== null && props.awayScore !== null
+      ? scoreBet(bet.homePred, bet.awayPred, props.homeScore, props.awayScore)
+      : null;
 
   const [home, setHome] = useState(bet?.homePred ?? 0);
   const [away, setAway] = useState(bet?.awayPred ?? 0);
@@ -166,6 +170,7 @@ export function BetControls(props: BetControlsProps) {
       <Footer
         finished={finished}
         live={live}
+        base={base}
         teamsKnown={teamsKnown}
         locked={locked}
         dirty={dirty}
@@ -182,6 +187,7 @@ export function BetControls(props: BetControlsProps) {
 function Footer({
   finished,
   live,
+  base,
   teamsKnown,
   locked,
   dirty,
@@ -193,6 +199,7 @@ function Footer({
 }: {
   finished: boolean;
   live: boolean;
+  base: number | null;
   teamsKnown: boolean;
   locked: boolean;
   dirty: boolean;
@@ -221,7 +228,7 @@ function Footer({
         <span className="text-mute">
           {bet ? `Your pick: ${bet.homePred}–${bet.awayPred}` : "No prediction"}
         </span>
-        {bet ? <PointsBadge points={bet.points} /> : null}
+        {bet && base !== null ? <PointsBadge base={base} points={bet.points ?? 0} /> : null}
       </div>
     );
   }

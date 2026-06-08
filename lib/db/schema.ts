@@ -27,6 +27,16 @@ export const matchStatusEnum = pgEnum("match_status", ["scheduled", "live", "fin
 
 export type MatchStatus = (typeof matchStatusEnum.enumValues)[number];
 
+// A buy-in payment moves pending -> paid via the Asaas webhook.
+export const paymentStatusEnum = pgEnum("payment_status", [
+  "pending",
+  "paid",
+  "failed",
+  "expired",
+]);
+
+export type PaymentStatus = (typeof paymentStatusEnum.enumValues)[number];
+
 // One row per person. We key on the full email; the username is the email prefix.
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -63,6 +73,7 @@ export const matches = pgTable("matches", {
   status: matchStatusEnum("status").notNull().default("scheduled"),
   homeScore: integer("home_score"), // current/final score (set when live or finished)
   awayScore: integer("away_score"),
+  pointsMultiplier: integer("points_multiplier").notNull().default(1), // by stage
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -86,6 +97,23 @@ export const bets = pgTable(
   (table) => [uniqueIndex("bets_user_match_uq").on(table.userId, table.matchId)],
 );
 
+// Buy-in payments. A user's stake = sum of their `paid` rows. Amounts in cents.
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  amountCents: integer("amount_cents").notNull(),
+  status: paymentStatusEnum("status").notNull().default("pending"),
+  provider: text("provider").notNull().default("asaas"),
+  providerPaymentId: text("provider_payment_id").unique(), // Asaas pay_…
+  qrCode: text("qr_code"), // copia-e-cola
+  qrCodeBase64: text("qr_code_base64"), // QR image
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+});
+
 export type User = typeof users.$inferSelect;
 export type Match = typeof matches.$inferSelect;
 export type Bet = typeof bets.$inferSelect;
+export type Payment = typeof payments.$inferSelect;

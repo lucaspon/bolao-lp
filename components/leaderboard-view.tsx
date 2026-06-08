@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { LeaderRow } from "@/lib/db/queries";
+import { computePayouts } from "@/lib/payout";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
 type View = "official" | "live";
+
+const brl = (cents: number) => `R$${(cents / 100).toFixed(0)}`;
 
 function Podium({
   top,
@@ -60,20 +63,25 @@ export function LeaderboardView({
   meId,
   concluded,
   liveCount,
+  potCents,
 }: {
   rows: LeaderRow[];
   meId: number;
   concluded: number;
   liveCount: number;
+  potCents: number;
 }) {
   const hasLive = liveCount > 0;
   const [view, setView] = useState<View>(hasLive ? "live" : "official");
 
-  const value = (row: LeaderRow) => (view === "live" ? row.livePoints : row.points);
+  const metric = view === "live" ? "livePoints" : "points";
+  const value = (row: LeaderRow) => row[metric];
   const sorted = [...rows].sort(
     (a, b) => value(b) - value(a) || b.exact - a.exact || a.username.localeCompare(b.username),
   );
   const top = sorted.filter((row) => value(row) > 0).slice(0, 3);
+
+  const payouts = computePayouts(rows, potCents, metric);
 
   const maxPoints = concluded * 3;
   const pct = (points: number) =>
@@ -82,7 +90,15 @@ export function LeaderboardView({
   return (
     <div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-bold tracking-wide">Leaderboard</h1>
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-wide">Leaderboard</h1>
+          {potCents > 0 && (
+            <p className="text-sm text-mute">
+              Pote: <span className="font-semibold text-gold">{brl(potCents)}</span> · top 3 levam,
+              proporcional a pontos × aposta
+            </p>
+          )}
+        </div>
         {hasLive && (
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1.5 rounded-md bg-danger/15 px-2 py-1 text-xs font-bold text-danger">
@@ -130,12 +146,13 @@ export function LeaderboardView({
               <th className="px-3 py-2.5 text-left font-semibold">Player</th>
               <th className="px-3 py-2.5 text-right font-semibold">Exact</th>
               <th className="px-3 py-2.5 text-right font-semibold">Winner</th>
-              <th className="px-3 py-2.5 text-right font-semibold">Picks</th>
               <th className="px-3 py-2.5 text-right font-semibold">Pts</th>
               <th className="px-3 py-2.5 text-right font-semibold">Pts %</th>
               {hasLive && (
                 <th className="px-3 py-2.5 text-right font-semibold text-danger">Live</th>
               )}
+              <th className="px-3 py-2.5 text-right font-semibold">Stake</th>
+              <th className="px-3 py-2.5 text-right font-semibold text-gold">Prize</th>
             </tr>
           </thead>
           <tbody>
@@ -156,7 +173,6 @@ export function LeaderboardView({
                   </td>
                   <td className="tabular px-3 py-2.5 text-right text-mute">{row.exact}</td>
                   <td className="tabular px-3 py-2.5 text-right text-mute">{row.correct}</td>
-                  <td className="tabular px-3 py-2.5 text-right text-mute">{row.picks}</td>
                   <td
                     className={cn(
                       "tabular px-3 py-2.5 text-right font-display text-lg font-bold",
@@ -176,6 +192,12 @@ export function LeaderboardView({
                       {row.livePoints}
                     </td>
                   )}
+                  <td className="tabular px-3 py-2.5 text-right text-mute">
+                    {row.stakeCents > 0 ? brl(row.stakeCents) : "–"}
+                  </td>
+                  <td className="tabular px-3 py-2.5 text-right font-display text-base font-bold text-gold">
+                    {payouts.get(row.userId) ? brl(payouts.get(row.userId)!) : "–"}
+                  </td>
                 </tr>
               );
             })}

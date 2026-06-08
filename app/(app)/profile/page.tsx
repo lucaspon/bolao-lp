@@ -1,6 +1,9 @@
 import { requireUser } from "@/lib/auth/session";
-import { getMatchesForUser } from "@/lib/db/queries";
+import { getMatchesForUser, getUserStakeCents, getStakingBounds } from "@/lib/db/queries";
 import { MatchCard } from "@/components/match-card";
+import { PayEntry } from "@/components/pay-entry";
+import { scoreBet } from "@/lib/scoring";
+import { stakingWindow } from "@/lib/staking";
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +18,24 @@ function Stat({ value, label }: { value: number | string; label: string }) {
 
 export default async function ProfilePage() {
   const user = await requireUser();
-  const all = await getMatchesForUser(user.id);
+  const [all, stakeCents, bounds] = await Promise.all([
+    getMatchesForUser(user.id),
+    getUserStakeCents(user.id),
+    getStakingBounds(),
+  ]);
   const myPicks = all.filter((match) => match.bet);
+  const window = stakingWindow(bounds);
 
-  const scored = myPicks.filter((match) => match.bet?.points !== null);
-  const exact = myPicks.filter((match) => match.bet?.points === 3).length;
-  const correct = myPicks.filter((match) => match.bet?.points === 1).length;
+  // exact/winner come from the actual scores (multiplier-independent), not the
+  // weighted points value.
+  const base = (match: (typeof myPicks)[number]) =>
+    match.bet && match.homeScore !== null && match.awayScore !== null
+      ? scoreBet(match.bet.homePred, match.bet.awayPred, match.homeScore, match.awayScore)
+      : null;
+
+  const scored = myPicks.filter((match) => base(match) !== null);
+  const exact = myPicks.filter((match) => base(match) === 3).length;
+  const correct = myPicks.filter((match) => base(match) === 1).length;
   const points = myPicks.reduce((sum, match) => sum + (match.bet?.points ?? 0), 0);
   const accuracy =
     scored.length > 0 ? Math.round(((exact + correct) / scored.length) * 100) : null;
@@ -29,6 +44,15 @@ export default async function ProfilePage() {
     <div className="mx-auto max-w-3xl">
       <h1 className="mb-1 font-display text-2xl font-bold tracking-wide">My Bets</h1>
       <p className="mb-5 text-sm text-mute">Signed in as @{user.username}</p>
+
+      <div className="mb-6">
+        <PayEntry
+          stakeCents={stakeCents}
+          phase={window.phase}
+          open={window.open}
+          topUpOnly={window.topUpOnly}
+        />
+      </div>
 
       <div className="mb-7 grid grid-cols-2 gap-2.5 sm:grid-cols-5">
         <Stat value={points} label="points" />

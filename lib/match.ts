@@ -17,6 +17,19 @@ export const STAGE_LABEL: Record<Stage, string> = Object.fromEntries(
   STAGES.map((s) => [s.key, s.label]),
 ) as Record<Stage, string>;
 
+// Per-match points multiplier by stage ("Balanced" curve): later rounds are
+// worth more, so the group stage stops swamping the total. Base points (+3
+// exact / +1 result) are multiplied by this.
+export const STAGE_WEIGHT: Record<Stage, number> = {
+  group: 1,
+  round_of_32: 2,
+  round_of_16: 3,
+  quarter: 5,
+  semi: 8,
+  third_place: 5,
+  final: 13,
+};
+
 export function isLockedAt(kickoffMs: number, now: number = Date.now()): boolean {
   return now >= kickoffMs - BET_LOCK_MS;
 }

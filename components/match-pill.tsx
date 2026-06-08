@@ -6,6 +6,7 @@ import { useNow } from "@/components/use-now";
 import { usePillKeyboard, type Side } from "@/components/keyboard-bet";
 import { placeBetAction, clearBetAction } from "@/app/actions/bets";
 import { isLockedAt } from "@/lib/match";
+import { scoreBet } from "@/lib/scoring";
 import type { MatchStatus } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 
@@ -144,12 +145,17 @@ export function MatchPill({ match, className }: { match: PillMatch; className?: 
     clear,
   });
 
+  const base =
+    finished && bet && match.homeScore !== null && match.awayScore !== null
+      ? scoreBet(bet.homePred, bet.awayPred, match.homeScore, match.awayScore)
+      : null;
+
   const borderClass = live
     ? "border-danger/70"
     : finished
-      ? bet?.points === 3
+      ? base === 3
         ? "border-gold/50"
-        : bet?.points === 1
+        : base === 1
           ? "border-neon/50"
           : "border-line"
       : !teamsKnown

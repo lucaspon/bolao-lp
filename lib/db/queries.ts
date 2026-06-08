@@ -1,8 +1,9 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { db } from "./client";
-import { users, matches, bets, type User, type Match } from "./schema";
+import { users, matches, bets, payments, type User, type Match, type Payment } from "./schema";
 import { isAdminEmail, usernameFromEmail } from "../auth/policy";
 import { scoreBet } from "../scoring";
+import type { StakingBounds } from "../staking";
 
 export type MatchWithBet = Match & {
   bet: { homePred: number; awayPred: number; points: number | null } | null;
@@ -70,15 +71,16 @@ export type LeaderRow = {
   correct: number;
   picks: number;
   livePoints: number; // provisional: includes in-play matches
+  stakeCents: number; // total paid buy-in
 };
 
 // Provisional points: scores in-play AND finished matches using their current score.
 const livePointsExpr = sql<number>`coalesce(sum(
   case when ${matches.status} in ('live', 'finished')
             and ${matches.homeScore} is not null and ${matches.awayScore} is not null then
-    case when ${bets.homePred} = ${matches.homeScore} and ${bets.awayPred} = ${matches.awayScore} then 3
-         when sign(${bets.homePred} - ${bets.awayPred}) = sign(${matches.homeScore} - ${matches.awayScore}) then 1
-         else 0 end
+    (case when ${bets.homePred} = ${matches.homeScore} and ${bets.awayPred} = ${matches.awayScore} then 3
+          when sign(${bets.homePred} - ${bets.awayPred}) = sign(${matches.homeScore} - ${matches.awayScore}) then 1
+          else 0 end) * ${matches.pointsMultiplier}
   else 0 end), 0)`;
 
 // Standings: official points per user (+ a provisional total incl. in-play matches).
@@ -88,10 +90,13 @@ export async function getLeaderboard(): Promise<LeaderRow[]> {
       userId: users.id,
       username: users.username,
       points: sql<number>`coalesce(sum(${bets.points}), 0)`.mapWith(Number),
-      exact: sql<number>`count(*) filter (where ${bets.points} = 3)`.mapWith(Number),
-      correct: sql<number>`count(*) filter (where ${bets.points} = 1)`.mapWith(Number),
+      exact: sql<number>`count(*) filter (where ${bets.points} = 3 * ${matches.pointsMultiplier})`.mapWith(Number),
+      correct: sql<number>`count(*) filter (where ${bets.points} = 1 * ${matches.pointsMultiplier})`.mapWith(Number),
       picks: sql<number>`count(${bets.id})`.mapWith(Number),
       livePoints: livePointsExpr.mapWith(Number),
+      stakeCents: sql<number>`coalesce((select sum(${payments.amountCents}) from ${payments} where ${payments.userId} = ${users.id} and ${payments.status} = 'paid'), 0)`.mapWith(
+        Number,
+      ),
     })
     .from(users)
     .leftJoin(bets, eq(bets.userId, users.id))
@@ -99,7 +104,7 @@ export async function getLeaderboard(): Promise<LeaderRow[]> {
     .groupBy(users.id, users.username)
     .orderBy(
       sql`coalesce(sum(${bets.points}), 0) desc`,
-      sql`count(*) filter (where ${bets.points} = 3) desc`,
+      sql`count(*) filter (where ${bets.points} = 3 * ${matches.pointsMultiplier}) desc`,
       asc(users.username),
     );
 }
@@ -131,9 +136,14 @@ export async function rescoreMatch(
   awayScore: number,
 ): Promise<void> {
   await db.transaction(async (tx) => {
+    const [match] = await tx
+      .select({ multiplier: matches.pointsMultiplier })
+      .from(matches)
+      .where(eq(matches.id, matchId));
+    const multiplier = match?.multiplier ?? 1;
     const matchBets = await tx.select().from(bets).where(eq(bets.matchId, matchId));
     for (const bet of matchBets) {
-      const points = scoreBet(bet.homePred, bet.awayPred, homeScore, awayScore);
+      const points = scoreBet(bet.homePred, bet.awayPred, homeScore, awayScore) * multiplier;
       await tx.update(bets).set({ points }).where(eq(bets.id, bet.id));
     }
   });
@@ -159,4 +169,102 @@ export async function upsertUser(email: string): Promise<User> {
 export async function getUserById(id: number): Promise<User | null> {
   const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return rows[0] ?? null;
+}
+
+// ---- Payments / stakes ------------------------------------------------------
+
+export async function getStakingBounds(): Promise<StakingBounds> {
+  const [row] = await db
+    .select({
+      firstGroup: sql<string | null>`min(${matches.kickoffAt}) filter (where ${matches.stage} = 'group')`,
+      lastGroup: sql<string | null>`max(${matches.kickoffAt}) filter (where ${matches.stage} = 'group')`,
+      firstKnockout: sql<string | null>`min(${matches.kickoffAt}) filter (where ${matches.stage} = 'round_of_32')`,
+    })
+    .from(matches);
+  const ms = (value: string | null, fallback: number) =>
+    value ? new Date(value).getTime() : fallback;
+  return {
+    firstGroupMs: ms(row.firstGroup, Number.POSITIVE_INFINITY),
+    lastGroupMs: ms(row.lastGroup, Number.POSITIVE_INFINITY),
+    firstKnockoutMs: ms(row.firstKnockout, Number.POSITIVE_INFINITY),
+  };
+}
+
+export async function createPaymentRow(userId: number, amountCents: number): Promise<Payment> {
+  const [row] = await db.insert(payments).values({ userId, amountCents }).returning();
+  return row;
+}
+
+export async function attachCharge(
+  paymentId: number,
+  charge: { providerPaymentId: string; qrCode: string; qrCodeBase64: string },
+): Promise<void> {
+  await db
+    .update(payments)
+    .set({
+      providerPaymentId: charge.providerPaymentId,
+      qrCode: charge.qrCode,
+      qrCodeBase64: charge.qrCodeBase64,
+    })
+    .where(eq(payments.id, paymentId));
+}
+
+export async function markPaymentFailed(paymentId: number): Promise<void> {
+  await db.update(payments).set({ status: "failed" }).where(eq(payments.id, paymentId));
+}
+
+// Idempotent: flips a pending row to paid (keyed by our row id = externalReference).
+export async function markPaymentPaid(
+  paymentRowId: number,
+  amountCents: number,
+  providerPaymentId: string,
+): Promise<void> {
+  await db
+    .update(payments)
+    .set({ status: "paid", paidAt: new Date(), amountCents, providerPaymentId })
+    .where(eq(payments.id, paymentRowId));
+}
+
+export async function getPaymentById(id: number): Promise<Payment | null> {
+  const rows = await db.select().from(payments).where(eq(payments.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getUserStakeCents(userId: number): Promise<number> {
+  const [row] = await db
+    .select({ total: sql<number>`coalesce(sum(${payments.amountCents}), 0)`.mapWith(Number) })
+    .from(payments)
+    .where(and(eq(payments.userId, userId), eq(payments.status, "paid")));
+  return row.total;
+}
+
+export async function getPotTotalCents(): Promise<number> {
+  const [row] = await db
+    .select({ total: sql<number>`coalesce(sum(${payments.amountCents}), 0)`.mapWith(Number) })
+    .from(payments)
+    .where(eq(payments.status, "paid"));
+  return row.total;
+}
+
+export type AdminPaymentRow = {
+  userId: number;
+  username: string;
+  stakeCents: number;
+  lastPaidAt: Date | null;
+};
+
+export async function getPaymentsForAdmin(): Promise<AdminPaymentRow[]> {
+  return db
+    .select({
+      userId: users.id,
+      username: users.username,
+      stakeCents: sql<number>`coalesce(sum(${payments.amountCents}) filter (where ${payments.status} = 'paid'), 0)`.mapWith(
+        Number,
+      ),
+      lastPaidAt: sql<Date | null>`max(${payments.paidAt})`,
+    })
+    .from(users)
+    .leftJoin(payments, eq(payments.userId, users.id))
+    .groupBy(users.id, users.username)
+    .orderBy(desc(sql`coalesce(sum(${payments.amountCents}) filter (where ${payments.status} = 'paid'), 0)`), asc(users.username));
 }

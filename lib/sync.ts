@@ -1,6 +1,7 @@
 import { db } from "./db/client";
 import { matches, type Stage, type MatchStatus } from "./db/schema";
 import { rescoreMatch } from "./db/queries";
+import { STAGE_WEIGHT } from "./match";
 
 const API_BASE = "https://api.football-data.org/v4";
 const COMPETITION = "WC"; // FIFA World Cup
@@ -77,6 +78,7 @@ export async function syncMatches(): Promise<SyncResult> {
       status,
       homeScore,
       awayScore,
+      pointsMultiplier: STAGE_WEIGHT[stage],
     };
 
     const [saved] = await db
@@ -93,9 +95,10 @@ export async function syncMatches(): Promise<SyncResult> {
           status: values.status,
           homeScore: values.homeScore,
           awayScore: values.awayScore,
+          pointsMultiplier: values.pointsMultiplier,
         },
       })
-      .returning({ id: matches.id });
+      .returning({ id: matches.id, pointsMultiplier: matches.pointsMultiplier });
 
     result.total += 1;
     if (status === "live") result.live += 1;
