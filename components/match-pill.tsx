@@ -82,7 +82,15 @@ function ScoreBox({ children, live }: { children: React.ReactNode; live?: boolea
   );
 }
 
-export function MatchPill({ match, className }: { match: PillMatch; className?: string }) {
+export function MatchPill({
+  match,
+  className,
+  emphasis,
+}: {
+  match: PillMatch;
+  className?: string;
+  emphasis?: boolean;
+}) {
   const { bet } = match;
   const finished = match.status === "finished";
   const live = match.status === "live";
@@ -213,7 +221,9 @@ export function MatchPill({ match, className }: { match: PillMatch; className?: 
       onMouseDown={() => kb.select?.(match.id)}
       className={cn(
         "rounded-lg px-2 py-1.5 outline-none transition",
-        isBrazil ? "brazil-border" : cn("border bg-panel", borderClass),
+        isBrazil
+          ? "brazil-border"
+          : cn("border bg-panel", emphasis && !live && !finished ? "border-gold/60" : borderClass),
         kb.editing
           ? "ring-2 ring-neon"
           : kb.selected

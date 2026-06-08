@@ -1,9 +1,11 @@
 import { requireUser } from "@/lib/auth/session";
 import { getMatchesForUser, type MatchWithBet } from "@/lib/db/queries";
-import { STAGES, canBet, isLockedAt } from "@/lib/match";
+import { canBet, isLockedAt } from "@/lib/match";
 import { GROUP_LABELS } from "@/lib/teams";
+import { BRACKET, matchNoForApiId, slotShortLabel } from "@/lib/bracket";
 import { formatPillKickoff } from "@/lib/format";
 import { MatchPill, type PillMatch } from "@/components/match-pill";
+import { BracketView, type BracketPill } from "@/components/bracket-view";
 import { StageTabs, type StagePanel } from "@/components/stage-tabs";
 import { KeyboardBetProvider } from "@/components/keyboard-bet";
 
@@ -59,14 +61,22 @@ function GroupStage({ matches }: { matches: MatchWithBet[] }) {
   );
 }
 
-function KnockoutGrid({ matches }: { matches: MatchWithBet[] }) {
-  return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-      {matches.map((match) => (
-        <MatchPill key={match.id} match={toPill(match)} />
-      ))}
-    </div>
-  );
+// Enriches each knockout match with its FIFA match number and the group-slot /
+// feeder label to show until the real team is decided.
+function toBracketPills(matches: MatchWithBet[]): BracketPill[] {
+  return matches.flatMap((match) => {
+    const matchNo = matchNoForApiId(match.apiMatchId);
+    if (matchNo == null) return [];
+    const spec = BRACKET[matchNo];
+    return [
+      {
+        ...toPill(match),
+        matchNo,
+        homePlaceholder: slotShortLabel(spec.home),
+        awayPlaceholder: slotShortLabel(spec.away),
+      },
+    ];
+  });
 }
 
 function StatChip({ value, label }: { value: number | string; label: string }) {
@@ -91,20 +101,23 @@ export default async function MatchesPage() {
     0,
   );
 
-  const panels: StagePanel[] = STAGES.map((stage) => {
-    const list = matches.filter((match) => match.stage === stage.key);
-    return {
-      key: stage.key,
-      short: stage.short,
-      count: list.length,
-      node:
-        stage.key === "group" ? (
-          <GroupStage matches={list} />
-        ) : (
-          <KnockoutGrid matches={list} />
-        ),
-    };
-  }).filter((panel) => panel.count > 0);
+  const groupMatches = matches.filter((match) => match.stage === "group");
+  const knockoutPills = toBracketPills(matches.filter((match) => match.stage !== "group"));
+
+  const panels: StagePanel[] = [
+    {
+      key: "group",
+      short: "Groups",
+      count: groupMatches.length,
+      node: <GroupStage matches={groupMatches} />,
+    },
+    {
+      key: "knockout",
+      short: "Knockout",
+      count: knockoutPills.length,
+      node: <BracketView matches={knockoutPills} />,
+    },
+  ].filter((panel) => panel.count > 0);
 
   return (
     <div>
