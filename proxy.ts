@@ -20,5 +20,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/).*)"],
+  // `fonts/` is excluded so self-hosted static assets (e.g. the flag font) are
+  // never auth-gated — browsers fetch @font-face files without credentials.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/|fonts/).*)"],
 };

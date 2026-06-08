@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/* Self-hosted flag font. Windows' Segoe UI Emoji has no flag glyphs, so it
+   shows the bare country code instead of a flag. This Twemoji subset carries
+   only flag glyphs; the unicode-range scopes it to regional-indicator pairs and
+   the subdivision-flag tag sequences (England/Scotland), so every other
+   character keeps using our normal fonts. */
+@font-face {
+  font-family: "Twemoji Country Flags";
+  src: url("/fonts/TwemojiCountryFlags.woff2") format("woff2");
+  font-display: swap;
+  unicode-range: U+1F1E6-1F1FF, U+1F3F4, U+E0062-E007F, U+200D;
+}
+
 /* ---- Design tokens: "stadium at night" dark theme ---------------------- */
 :root {
   --base: #07080c;
@@ -42,7 +54,7 @@ body {
     radial-gradient(1200px 600px at 50% -10%, rgba(52, 226, 122, 0.08), transparent 60%),
     var(--base);
   color: var(--ink);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: "Twemoji Country Flags", var(--font-sans), system-ui, sans-serif;
 }
 
 /* Subtle pitch-stripe texture used behind hero areas */
