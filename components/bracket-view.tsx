@@ -12,9 +12,9 @@ export type BracketPill = PillMatch & { matchNo: number };
 // Vertical rhythm for the desktop bracket. Each Round of 32 match gets one SLOT;
 // the whole half is exactly 8 slots tall, so every later round (4, 2, 1 matches)
 // centres itself between its feeders with `justify-around`.
-const SLOT = 58;
+const SLOT = 60;
 const HALF_HEIGHT = SLOT * 8;
-const PILL_W = "w-[116px]";
+const PILL_W = "w-[150px]";
 
 function Pill({ pill, emphasis }: { pill: BracketPill | undefined; emphasis?: boolean }) {
   if (!pill) {
@@ -108,8 +108,9 @@ export function BracketView({ matches }: { matches: BracketPill[] }) {
 
   return (
     <div>
-      {/* Desktop: horizontal mirror bracket with Final + 3rd in the centre. */}
-      <div className="hidden justify-center overflow-x-auto pb-2 lg:flex">
+      {/* Desktop: horizontal mirror bracket with Final + 3rd in the centre.
+          Breaks out of the page's max-w-6xl column to use the full viewport. */}
+      <div className="hidden overflow-x-auto pb-2 lg:ml-[calc(50%-50vw)] lg:flex lg:w-screen lg:justify-center lg:px-8">
         <Half columns={LEFT_COLUMNS} side="left" byNo={byNo} />
 
         <div
