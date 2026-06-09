@@ -55,7 +55,10 @@ function Side_({
 }) {
   const team = getTeam(code);
   return (
-    <span className={cn("flex min-w-0 items-center gap-1", reverse && "flex-row-reverse")}>
+    <span
+      title={team ? team.name : undefined}
+      className={cn("flex min-w-0 items-center gap-1", reverse && "flex-row-reverse")}
+    >
       <span className="text-sm leading-none">{team ? team.flag : "⚽"}</span>
       <span
         className={cn(
