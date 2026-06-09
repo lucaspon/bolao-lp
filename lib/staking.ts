@@ -1,5 +1,5 @@
 // Stake limits (cents) and the two staking windows.
-export const ENTRY_MIN_CENTS = 5_000; // R$50 floor for a first stake
+export const ENTRY_MIN_CENTS = 2_500; // R$25 floor for a first stake
 export const ENTRY_MAX_TOTAL_CENTS = 100_000; // R$1000 cap on total per user
 
 export type StakingPhase = "initial" | "group_running" | "topup" | "closed";
