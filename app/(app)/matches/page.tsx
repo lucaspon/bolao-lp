@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth/session";
 import { getMatchesForUser, type MatchWithBet } from "@/lib/db/queries";
-import { canBet, isLockedAt } from "@/lib/match";
+import { canBet, isLockedAt, BET_LOCK_MS } from "@/lib/match";
+import { BetDeadlineCallout } from "@/components/bet-deadline-callout";
 import { GROUP_LABELS } from "@/lib/teams";
 import { BRACKET, matchNoForApiId, slotShortLabel } from "@/lib/bracket";
 import { formatPillKickoff } from "@/lib/format";
@@ -90,6 +91,20 @@ function StatChip({ value, label }: { value: number | string; label: string }) {
   );
 }
 
+// Active group-stage betting deadline: count down to the first match locking,
+// then (once the stage is under way) to the last. Null once all are locked.
+function activeGroupDeadline(
+  groupKickoffs: number[],
+): { deadlineMs: number; variant: "upcoming" | "closing" } | null {
+  if (groupKickoffs.length === 0) return null;
+  const firstLock = Math.min(...groupKickoffs) - BET_LOCK_MS;
+  const lastLock = Math.max(...groupKickoffs) - BET_LOCK_MS;
+  const nowMs = Date.now();
+  if (nowMs < firstLock) return { deadlineMs: firstLock, variant: "upcoming" };
+  if (nowMs < lastLock) return { deadlineMs: lastLock, variant: "closing" };
+  return null;
+}
+
 export default async function MatchesPage() {
   const user = await requireUser();
   const matches = await getMatchesForUser(user.id);
@@ -103,6 +118,10 @@ export default async function MatchesPage() {
 
   const groupMatches = matches.filter((match) => match.stage === "group");
   const knockoutPills = toBracketPills(matches.filter((match) => match.stage !== "group"));
+
+  const betDeadline = activeGroupDeadline(
+    groupMatches.map((match) => new Date(match.kickoffAt).getTime()),
+  );
 
   const panels: StagePanel[] = [
     {
@@ -137,6 +156,8 @@ export default async function MatchesPage() {
           <StatChip value={openNow} label="open" />
         </div>
       </div>
+
+      {betDeadline && <BetDeadlineCallout {...betDeadline} />}
 
       <p className="mb-3 text-xs text-mute">
         ⌨️ Arrows move · <span className="text-ink">Enter</span> to bet ·{" "}
