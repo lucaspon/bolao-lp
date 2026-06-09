@@ -45,3 +45,20 @@ export function formatCountdown(targetMs: number, now: number = Date.now()): str
   if (hours > 0) return `em ${hours}h ${mins}m`;
   return `em ${mins}m`;
 }
+
+// Like formatCountdown but down to the second, e.g. "em 2d 3h 15m 42s" — for the
+// bet-deadline callout, which ticks every second.
+export function formatCountdownLong(targetMs: number, now: number = Date.now()): string {
+  const diff = targetMs - now;
+  if (diff <= 0) return "começou";
+  const total = Math.floor(diff / 1000);
+  const days = Math.floor(total / 86400);
+  const hours = Math.floor((total % 86400) / 3600);
+  const mins = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (days > 0 || hours > 0) parts.push(`${hours}h`);
+  parts.push(`${mins}m`, `${secs}s`);
+  return `em ${parts.join(" ")}`;
+}

@@ -1,11 +1,11 @@
 "use client";
 
-import { useNow } from "@/components/use-now";
-import { formatCountdown, formatKickoff } from "@/lib/format";
+import { useEffect, useState } from "react";
+import { formatCountdownLong, formatKickoff } from "@/lib/format";
 
 // Warns how long is left to lock in group-stage predictions. The server picks
 // which deadline is live (first match locking, or — once the stage is under way
-// — the last); this just renders the live countdown to it.
+// — the last); this renders a live countdown to it, ticking every second.
 export function BetDeadlineCallout({
   deadlineMs,
   variant,
@@ -13,16 +13,20 @@ export function BetDeadlineCallout({
   deadlineMs: number;
   variant: "upcoming" | "closing";
 }) {
-  const now = useNow();
+  // Own 1s clock (not the shared 30s useNow) so the seconds tick. Starts null on
+  // both server and first client render to avoid a hydration mismatch.
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   if (now !== null && now >= deadlineMs) return null;
 
-  // Before mount `now` is null on both server and client, so render an absolute
-  // time (deterministic, no hydration mismatch) and swap to a live relative
-  // countdown once mounted.
-  const when =
-    now === null
-      ? `on ${formatKickoff(deadlineMs)}`
-      : formatCountdown(deadlineMs, now);
+  // Before mount render an absolute time (deterministic), then swap to the live
+  // seconds-precision countdown once mounted.
+  const when = now === null ? formatKickoff(deadlineMs) : formatCountdownLong(deadlineMs, now);
 
   const headline =
     variant === "closing"
