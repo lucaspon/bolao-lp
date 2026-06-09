@@ -62,9 +62,14 @@ export async function createEntryChargeAction(amountCents: number): Promise<Char
   try {
     const charge = await createPixCharge({
       amountCents,
-      externalReference: String(payment.id),
+      reference: String(payment.id),
+      label: user.username,
     });
-    await attachCharge(payment.id, charge);
+    await attachCharge(payment.id, {
+      providerPaymentId: charge.pixQrCodeId,
+      qrCode: charge.qrCode,
+      qrCodeBase64: charge.qrCodeBase64,
+    });
     return {
       ok: true,
       paymentId: payment.id,

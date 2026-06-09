@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, ne, sql, type SQL } from "drizzle-orm";
 import { db } from "./client";
 import { users, matches, bets, payments, type User, type Match, type Payment } from "./schema";
 import { isAdminEmail, usernameFromEmail } from "../auth/policy";
@@ -242,6 +242,18 @@ export async function markPaymentPaid(
     .update(payments)
     .set({ status: "paid", paidAt: new Date(), amountCents, providerPaymentId })
     .where(eq(payments.id, paymentRowId));
+}
+
+// Idempotent: flips the row whose static QR was paid (we store the QR id in
+// providerPaymentId when the charge is created). Used by the static-Pix webhook.
+export async function markPaymentPaidByQrCode(
+  pixQrCodeId: string,
+  amountCents: number,
+): Promise<void> {
+  await db
+    .update(payments)
+    .set({ status: "paid", paidAt: new Date(), amountCents })
+    .where(and(eq(payments.providerPaymentId, pixQrCodeId), ne(payments.status, "paid")));
 }
 
 export async function getPaymentById(id: number): Promise<Payment | null> {

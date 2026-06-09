@@ -1,10 +1,11 @@
-// Thin Asaas client for PIX charges. All charges hang off one internal "pool"
-// customer (identified by externalReference) — colleagues just pay the QR, so we
-// never need their CPF. Each charge carries our payment-row id as
-// `externalReference`, which the webhook hands back to reconcile.
+// Thin Asaas client for PIX receipts. We mint one *static* Pix QR per payment
+// (POST /pix/qrCodes/static) instead of a dynamic charge: static-QR receipts are
+// free (Asaas's 100/month allowance), whereas dynamic charges cost the Pix +
+// "mensageria" fees. When a static QR is paid, Asaas auto-creates a charge whose
+// `pixQrCodeId` equals the QR's id — that's how the webhook reconciles it to the
+// user (we store the id on the payment row when we create the QR).
 
 const BASE_URL = process.env.ASAAS_BASE_URL ?? "https://api.asaas.com/v3";
-const POOL_CUSTOMER_REF = "bolao-pool";
 
 function apiKey(): string {
   const key = process.env.API_KEY_ASAAS;
@@ -29,77 +30,44 @@ async function asaas<T = Record<string, unknown>>(
   return body as T;
 }
 
-let poolCustomerId: string | null = null;
-
-async function getPoolCustomerId(): Promise<string> {
-  if (poolCustomerId) return poolCustomerId;
-  const cpf = process.env.POOL_CPF;
-
-  const found = await asaas<{ data?: { id: string; cpfCnpj: string | null }[] }>(
-    `/customers?externalReference=${POOL_CUSTOMER_REF}&limit=1`,
-  );
-  if (found.data && found.data.length > 0) {
-    const existing = found.data[0];
-    poolCustomerId = existing.id;
-    // Asaas needs the customer to carry a CPF/CNPJ to bill it — backfill if missing.
-    if (cpf && !existing.cpfCnpj) {
-      await asaas(`/customers/${existing.id}`, {
-        method: "POST",
-        body: JSON.stringify({ cpfCnpj: cpf }),
-      });
-    }
-    return poolCustomerId;
-  }
-
-  const created = await asaas<{ id: string }>(`/customers`, {
-    method: "POST",
-    body: JSON.stringify({
-      name: "Bolão LCM (pool)",
-      externalReference: POOL_CUSTOMER_REF,
-      notificationDisabled: true, // avoid Asaas "mensageria" notification fees
-      ...(cpf ? { cpfCnpj: cpf } : {}),
-    }),
-  });
-  poolCustomerId = created.id;
-  return poolCustomerId;
-}
-
 export type PixCharge = {
-  providerPaymentId: string;
+  pixQrCodeId: string; // the static QR's id — our reconciliation key
   qrCode: string; // copia-e-cola
   qrCodeBase64: string; // QR image (base64, no data: prefix)
 };
 
 export async function createPixCharge(args: {
   amountCents: number;
-  externalReference: string;
+  reference: string; // our payment-row id, surfaced in the extrato description
+  label?: string; // e.g. the username, for a human-readable description
 }): Promise<PixCharge> {
-  const customer = await getPoolCustomerId();
-  const dueDate = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+  const addressKey = process.env.ASAAS_PIX_ADDRESS_KEY;
+  if (!addressKey) throw new Error("ASAAS_PIX_ADDRESS_KEY is not set.");
 
-  const charge = await asaas<{ id: string }>(`/payments`, {
-    method: "POST",
-    body: JSON.stringify({
-      customer,
-      billingType: "PIX",
-      value: args.amountCents / 100,
-      dueDate,
-      externalReference: args.externalReference,
-      description: "Bolão da Copa 2026 — entrada",
-    }),
-  });
+  const description = `Bolão da Copa 2026 — entrada${args.label ? ` ${args.label}` : ""} #${args.reference}`;
 
-  const qr = await asaas<{ payload: string; encodedImage: string }>(
-    `/payments/${charge.id}/pixQrCode`,
+  const qr = await asaas<{ id: string; payload: string; encodedImage: string }>(
+    `/pix/qrCodes/static`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        addressKey,
+        value: args.amountCents / 100,
+        description,
+        format: "ALL",
+      }),
+    },
   );
 
   return {
-    providerPaymentId: charge.id,
+    pixQrCodeId: qr.id,
     qrCode: qr.payload,
     qrCodeBase64: qr.encodedImage,
   };
 }
 
-export async function getAsaasPayment(id: string): Promise<{ status: string; value: number }> {
+export async function getAsaasPayment(
+  id: string,
+): Promise<{ status: string; value: number; pixQrCodeId: string | null }> {
   return asaas(`/payments/${id}`);
 }
