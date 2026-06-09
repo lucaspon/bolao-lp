@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { db } from "./db/client";
 import { matches, type Stage, type MatchStatus } from "./db/schema";
 import { rescoreMatch } from "./db/queries";
-import { STAGE_WEIGHT } from "./match";
+import { matchPointsMultiplier } from "./match";
 
 const API_BASE = "https://api.football-data.org/v4";
 const COMPETITION = "WC"; // FIFA World Cup
@@ -67,19 +67,21 @@ export async function syncMatches(): Promise<SyncResult> {
     const hasScore = home !== null && away !== null;
     const homeScore = status === "scheduled" || !hasScore ? null : home;
     const awayScore = status === "scheduled" || !hasScore ? null : away;
+    const homeTeam = apiMatch.homeTeam?.tla ?? null;
+    const awayTeam = apiMatch.awayTeam?.tla ?? null;
 
     const values = {
       extId: `wc-${apiMatch.id}`,
       apiMatchId: apiMatch.id,
       stage,
       groupLabel: apiMatch.group ? apiMatch.group.replace("GROUP_", "") : null,
-      homeTeam: apiMatch.homeTeam?.tla ?? null,
-      awayTeam: apiMatch.awayTeam?.tla ?? null,
+      homeTeam,
+      awayTeam,
       kickoffAt: new Date(apiMatch.utcDate),
       status,
       homeScore,
       awayScore,
-      pointsMultiplier: STAGE_WEIGHT[stage],
+      pointsMultiplier: matchPointsMultiplier(stage, homeTeam, awayTeam),
     };
 
     const [saved] = await db

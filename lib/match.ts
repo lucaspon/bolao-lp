@@ -30,6 +30,22 @@ export const STAGE_WEIGHT: Record<Stage, number> = {
   final: 13,
 };
 
+// Brazil matches are worth double — on top of the stage weight.
+export const BRAZIL_CODE = "BRA";
+export const BRAZIL_POINTS_MULTIPLIER = 2;
+
+// The per-match points multiplier stored on each match: the stage weight, doubled
+// whenever Brazil is playing. Applied to the base score (+3 exact / +1 result),
+// so it flows through scoring, the leaderboard, payouts and percentages.
+export function matchPointsMultiplier(
+  stage: Stage,
+  homeTeam: string | null,
+  awayTeam: string | null,
+): number {
+  const isBrazil = homeTeam === BRAZIL_CODE || awayTeam === BRAZIL_CODE;
+  return STAGE_WEIGHT[stage] * (isBrazil ? BRAZIL_POINTS_MULTIPLIER : 1);
+}
+
 export function isLockedAt(kickoffMs: number, now: number = Date.now()): boolean {
   return now >= kickoffMs - BET_LOCK_MS;
 }

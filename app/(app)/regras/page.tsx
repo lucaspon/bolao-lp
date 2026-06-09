@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth/session";
 import { getMatchCountsByStage } from "@/lib/db/queries";
-import { STAGES, STAGE_WEIGHT } from "@/lib/match";
+import { STAGES, STAGE_WEIGHT, BRAZIL_POINTS_MULTIPLIER } from "@/lib/match";
 import { ENTRY_MIN_CENTS, ENTRY_MAX_TOTAL_CENTS } from "@/lib/staking";
 
 const brl = (cents: number) => `R$${(cents / 100).toFixed(0)}`;
@@ -106,7 +106,22 @@ export default async function RegrasPage() {
             <strong>final</strong> vale 3 × {STAGE_WEIGHT.final} ={" "}
             <strong className="text-ink">{3 * STAGE_WEIGHT.final} pontos</strong>. A fase de grupos
             vale {Math.round((maxPoints("group") / totalMaxPoints) * 100)}% de todos os pontos —
-            o resto sai no mata-mata.
+            o resto sai no mata-mata. (A tabela mostra o multiplicador base, antes do bônus do
+            Brasil abaixo.)
+          </p>
+          <p className="rounded-lg border border-neon/30 bg-neon/10 p-3">
+            🇧🇷 <strong className="text-neon">Jogos do Brasil valem dobro.</strong> Sempre que a
+            Seleção joga, o multiplicador da fase é multiplicado por {BRAZIL_POINTS_MULTIPLIER}.
+            Ex.: cravar um jogo do Brasil na fase de grupos vale 3 × {STAGE_WEIGHT.group} ×{" "}
+            {BRAZIL_POINTS_MULTIPLIER} ={" "}
+            <strong className="text-ink">
+              {3 * STAGE_WEIGHT.group * BRAZIL_POINTS_MULTIPLIER} pontos
+            </strong>
+            ; na final, 3 × {STAGE_WEIGHT.final} × {BRAZIL_POINTS_MULTIPLIER} ={" "}
+            <strong className="text-ink">
+              {3 * STAGE_WEIGHT.final * BRAZIL_POINTS_MULTIPLIER}
+            </strong>
+            .
           </p>
         </Section>
 
@@ -135,9 +150,8 @@ export default async function RegrasPage() {
             </li>
           </ul>
           <p className="rounded-lg bg-base p-3 text-mute">
-            ⚠️ A maquininha (Asaas) cobra uma <strong>taxa de R$0,99 por PIX recebido</strong>. Ou
-            seja, de uma aposta de {brl(ENTRY_MIN_CENTS)} entram ~R${(ENTRY_MIN_CENTS / 100 - 0.99).toFixed(2)} no
-            pote. A taxa é da operadora, não fica com ninguém do bolão.
+            ✅ O PIX é por QR Code estático (Asaas), <strong>sem taxas</strong> — o valor cheio da
+            sua aposta entra no pote.
           </p>
         </Section>
 
