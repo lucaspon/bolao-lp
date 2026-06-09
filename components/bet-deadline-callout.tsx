@@ -19,16 +19,19 @@ export function BetDeadlineCallout({
   // Before mount `now` is null on both server and client, so render an absolute
   // time (deterministic, no hydration mismatch) and swap to a live relative
   // countdown once mounted.
-  const when = now === null ? `on ${formatKickoff(deadlineMs)}` : formatCountdown(deadlineMs, now);
+  const when =
+    now === null
+      ? `on ${formatKickoff(deadlineMs)}`
+      : formatCountdown(deadlineMs, now);
 
   const headline =
     variant === "closing"
       ? "Última chamada para as apostas da fase de grupos"
-      : "As apostas da fase de grupos fecham em breve";
+      : "As apostas da fase de grupos fecham em breve!";
   const detail =
     variant === "closing"
       ? `os últimos jogos da fase de grupos fecham ${when}, 1h antes do jogo.`
-      : `o primeiro jogo fecha ${when} (as apostas fecham 1h antes de cada jogo). Garanta seus palpites!`;
+      : `o primeiro jogo começa ${when} (as apostas fecham 1h antes de cada jogo). Não fique de fora!`;
 
   return (
     <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3">
