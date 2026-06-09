@@ -44,7 +44,9 @@ export async function createPixCharge(args: {
   const addressKey = process.env.ASAAS_PIX_ADDRESS_KEY;
   if (!addressKey) throw new Error("ASAAS_PIX_ADDRESS_KEY is not set.");
 
-  const description = `Bolão da Copa 2026 — entrada${args.label ? ` ${args.label}` : ""} #${args.reference}`;
+  // Asaas caps the static-QR description at 37 chars (it's only for the extrato —
+  // reconciliation is by pixQrCodeId, not this text).
+  const description = `Bolão #${args.reference}${args.label ? ` ${args.label}` : ""}`.slice(0, 37);
 
   const qr = await asaas<{ id: string; payload: string; encodedImage: string }>(
     `/pix/qrCodes/static`,

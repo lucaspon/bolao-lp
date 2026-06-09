@@ -76,7 +76,8 @@ export async function createEntryChargeAction(amountCents: number): Promise<Char
       qrCode: charge.qrCode,
       qrCodeBase64: charge.qrCodeBase64,
     };
-  } catch {
+  } catch (err) {
+    console.error("createEntryChargeAction failed:", err instanceof Error ? err.message : err);
     await markPaymentFailed(payment.id);
     return { ok: false, error: "Não foi possível gerar o PIX. Tente novamente." };
   }
