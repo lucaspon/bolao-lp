@@ -12,7 +12,7 @@ export type BracketPill = PillMatch & { matchNo: number };
 // Vertical rhythm for the desktop bracket. Each Round of 32 match gets one SLOT;
 // the whole half is exactly 8 slots tall, so every later round (4, 2, 1 matches)
 // centres itself between its feeders with `justify-around`.
-const SLOT = 60;
+const SLOT = 80;
 const HALF_HEIGHT = SLOT * 8;
 const PILL_W = "w-[150px]";
 
