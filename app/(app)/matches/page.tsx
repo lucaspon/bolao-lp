@@ -126,13 +126,13 @@ export default async function MatchesPage() {
   const panels: StagePanel[] = [
     {
       key: "group",
-      short: "Groups",
+      short: "Grupos",
       count: groupMatches.length,
       node: <GroupStage matches={groupMatches} />,
     },
     {
       key: "knockout",
-      short: "Knockout",
+      short: "Mata-mata",
       count: knockoutPills.length,
       node: <BracketView matches={knockoutPills} />,
     },
@@ -143,30 +143,30 @@ export default async function MatchesPage() {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-xl font-bold tracking-wide">
-            Hey, {user.username} 👋
+            Olá, {user.username} 👋
           </h1>
           <p className="text-sm text-mute">
-            Tap a score to predict. +3 exact, +1 right result. Locks 1h before
-            kickoff.
+            Toque no placar para palpitar. +3 cravando, +1 acertando o resultado.
+            Fecha 1h antes do jogo.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <StatChip value={points} label="pts" />
-          <StatChip value={picks} label="picks" />
-          <StatChip value={openNow} label="open" />
+          <StatChip value={picks} label="palpites" />
+          <StatChip value={openNow} label="abertos" />
         </div>
       </div>
 
       {betDeadline && <BetDeadlineCallout {...betDeadline} />}
 
       <p className="mb-3 text-xs text-mute">
-        ⌨️ Arrows move · <span className="text-ink">Enter</span> to bet ·{" "}
-        <span className="text-ink">↑↓</span> or{" "}
-        <span className="text-ink">0–9</span> set score ·{" "}
-        <span className="text-ink">←→</span> side ·{" "}
-        <span className="text-ink">Del</span> clear ·{" "}
-        <span className="text-ink">Enter</span> save ·{" "}
-        <span className="text-ink">Tab</span> switch stage
+        ⌨️ Setas movem · <span className="text-ink">Enter</span> para apostar ·{" "}
+        <span className="text-ink">↑↓</span> ou{" "}
+        <span className="text-ink">0–9</span> definem o placar ·{" "}
+        <span className="text-ink">←→</span> lado ·{" "}
+        <span className="text-ink">Del</span> limpa ·{" "}
+        <span className="text-ink">Enter</span> salva ·{" "}
+        <span className="text-ink">Tab</span> troca a fase
       </p>
 
       <KeyboardBetProvider>

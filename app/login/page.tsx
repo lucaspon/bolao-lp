@@ -17,7 +17,7 @@ export default function LoginPage() {
     startTransition(async () => {
       const result = await requestCodeAction(email);
       if (!result.ok) {
-        setError(result.error ?? "Something went wrong.");
+        setError(result.error ?? "Algo deu errado.");
         return;
       }
       setStep("code");
@@ -30,7 +30,7 @@ export default function LoginPage() {
     startTransition(async () => {
       const result = await verifyCodeAction(email, code);
       if (!result.ok) {
-        setError(result.error ?? "Invalid code.");
+        setError(result.error ?? "Código inválido.");
         return;
       }
       window.location.assign("/matches");
@@ -46,14 +46,14 @@ export default function LoginPage() {
         <h1 className="font-display text-3xl font-bold tracking-wide">
           BOLÃO <span className="text-neon">DA COPA 2026</span>
         </h1>
-        <p className="mt-1 text-sm text-mute">Lumina × OKT prediction pool</p>
+        <p className="mt-1 text-sm text-mute">Bolão Lumina × OKT</p>
       </div>
 
       <div className="w-full max-w-sm rounded-2xl border border-line bg-panel p-6">
         {step === "email" ? (
           <form onSubmit={sendCode} className="flex flex-col gap-3">
             <label className="text-sm font-medium text-ink" htmlFor="email">
-              Work email
+              E-mail corporativo
             </label>
             <div className="flex items-center gap-2 rounded-lg border border-line bg-base px-3">
               <Mail size={16} className="text-mute" />
@@ -69,8 +69,8 @@ export default function LoginPage() {
               />
             </div>
             <p className="text-xs text-mute">
-              We will email you a 6-digit code. Only @luminacm.com and @oktcapital.com
-              addresses can join.
+              Enviaremos um código de 6 dígitos por e-mail. Apenas endereços
+              @luminacm.com e @oktcapital.com podem entrar.
             </p>
             {error && <p className="text-sm text-danger">{error}</p>}
             <button
@@ -78,14 +78,14 @@ export default function LoginPage() {
               disabled={pending}
               className="mt-1 flex h-11 items-center justify-center gap-2 rounded-lg bg-neon text-sm font-semibold text-base transition hover:brightness-110 disabled:opacity-50"
             >
-              {pending ? "Sending…" : "Send login code"}
+              {pending ? "Enviando…" : "Enviar código"}
               <ArrowRight size={16} />
             </button>
           </form>
         ) : (
           <form onSubmit={verify} className="flex flex-col gap-3">
             <label className="text-sm font-medium text-ink" htmlFor="code">
-              Enter the code sent to <span className="text-neon">{email}</span>
+              Digite o código enviado para <span className="text-neon">{email}</span>
             </label>
             <input
               id="code"
@@ -105,7 +105,7 @@ export default function LoginPage() {
               disabled={pending || code.length !== 6}
               className="mt-1 flex h-11 items-center justify-center gap-2 rounded-lg bg-neon text-sm font-semibold text-base transition hover:brightness-110 disabled:opacity-50"
             >
-              {pending ? "Verifying…" : "Verify & enter"}
+              {pending ? "Verificando…" : "Verificar e entrar"}
             </button>
             <button
               type="button"
@@ -116,7 +116,7 @@ export default function LoginPage() {
               }}
               className="text-xs text-mute hover:text-ink"
             >
-              ← Use a different email
+              ← Usar outro e-mail
             </button>
           </form>
         )}

@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { getTeam } from "@/lib/teams";
+import { HoverTip } from "@/components/hover-tip";
 import { useNow } from "@/components/use-now";
 import { usePillKeyboard, type Side } from "@/components/keyboard-bet";
 import { placeBetAction, clearBetAction } from "@/app/actions/bets";
@@ -55,8 +56,8 @@ function Side_({
 }) {
   const team = getTeam(code);
   return (
-    <span
-      title={team ? team.name : undefined}
+    <HoverTip
+      label={team?.name}
       className={cn("flex min-w-0 items-center gap-1", reverse && "flex-row-reverse")}
     >
       <span className="text-sm leading-none">{team ? team.flag : "⚽"}</span>
@@ -68,7 +69,7 @@ function Side_({
       >
         {team ? team.code : shortPlaceholder(placeholder)}
       </span>
-    </span>
+    </HoverTip>
   );
 }
 
@@ -179,21 +180,21 @@ export function MatchPill({
 
   let statusLabel: string;
   if (live) {
-    statusLabel = bet ? `LIVE · pick ${bet.homePred}–${bet.awayPred}` : "LIVE";
+    statusLabel = bet ? `AO VIVO · palpite ${bet.homePred}–${bet.awayPred}` : "AO VIVO";
   } else if (finished) {
-    statusLabel = bet?.points != null ? `FT · +${bet.points}p` : "FT";
+    statusLabel = bet?.points != null ? `FIM · +${bet.points}p` : "FIM";
   } else if (!teamsKnown) {
-    statusLabel = "TBD";
+    statusLabel = "A definir";
   } else if (locked) {
-    statusLabel = "🔒 locked";
+    statusLabel = "🔒 fechado";
   } else if (saveStatus === "saving") {
-    statusLabel = "saving…";
+    statusLabel = "salvando…";
   } else if (saveStatus === "saved") {
-    statusLabel = "saved ✓";
+    statusLabel = "salvo ✓";
   } else if (saveStatus === "error") {
-    statusLabel = "error";
+    statusLabel = "erro";
   } else {
-    statusLabel = bet ? "saved" : "open";
+    statusLabel = bet ? "salvo" : "aberto";
   }
 
   function scoreInput(side: Side, value: string, setValue: (next: string) => void) {

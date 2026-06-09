@@ -122,7 +122,7 @@ export function BracketView({ matches }: { matches: BracketPill[] }) {
           </span>
           <Pill pill={byNo.get(CENTER.final)} emphasis />
           <span className="mt-3 text-[10px] uppercase tracking-wide text-mute">
-            3rd place
+            3º lugar
           </span>
           <Pill pill={byNo.get(CENTER.third)} />
         </div>
@@ -155,11 +155,11 @@ export function BracketView({ matches }: { matches: BracketPill[] }) {
 
       {/* Notation legend. */}
       <p className="mt-5 text-center text-[11px] text-mute">
-        <span className="text-ink">1X</span> winner group X ·{" "}
-        <span className="text-ink">2X</span> runner-up X ·{" "}
-        <span className="text-ink">3rd</span> best third-placed ·{" "}
-        <span className="text-ink">W##</span> winner of match ## ·{" "}
-        <span className="text-ink">L##</span> loser of match ##
+        <span className="text-ink">1X</span> 1º do grupo X ·{" "}
+        <span className="text-ink">2X</span> 2º do grupo X ·{" "}
+        <span className="text-ink">3º</span> melhor 3º colocado ·{" "}
+        <span className="text-ink">V##</span> vencedor do jogo ## ·{" "}
+        <span className="text-ink">P##</span> perdedor do jogo ##
       </p>
     </div>
   );

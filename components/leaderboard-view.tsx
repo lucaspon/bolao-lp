@@ -91,7 +91,7 @@ export function LeaderboardView({
     <div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-wide">Leaderboard</h1>
+          <h1 className="font-display text-2xl font-bold tracking-wide">Classificação</h1>
           {potCents > 0 && (
             <p className="text-sm text-mute">
               Pote: <span className="font-semibold text-gold">{brl(potCents)}</span> · top 3 levam,
@@ -103,7 +103,7 @@ export function LeaderboardView({
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1.5 rounded-md bg-danger/15 px-2 py-1 text-xs font-bold text-danger">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-danger" />
-              {liveCount} live
+              {liveCount} ao vivo
             </span>
             <div className="flex rounded-lg border border-line p-0.5 text-xs font-semibold">
               {(["live", "official"] as View[]).map((option) => (
@@ -116,7 +116,7 @@ export function LeaderboardView({
                     view === option ? "bg-panel2 text-ink" : "text-mute hover:text-ink",
                   )}
                 >
-                  {option}
+                  {option === "live" ? "ao vivo" : "oficial"}
                 </button>
               ))}
             </div>
@@ -126,7 +126,7 @@ export function LeaderboardView({
 
       {view === "live" && (
         <p className="mb-4 text-xs text-mute">
-          Provisional standings — includes in-play matches at their current score. Not final.
+          Classificação provisória — inclui jogos em andamento no placar atual. Não é final.
         </p>
       )}
 
@@ -134,7 +134,7 @@ export function LeaderboardView({
         <Podium top={top} meId={meId} metric={view} />
       ) : (
         <p className="mb-6 rounded-xl border border-line bg-panel p-4 text-sm text-mute">
-          No points yet — standings light up once matches are played.
+          Sem pontos ainda — a classificação ganha vida quando os jogos começam.
         </p>
       )}
 
@@ -143,16 +143,16 @@ export function LeaderboardView({
           <thead className="bg-panel text-xs uppercase tracking-wide text-mute">
             <tr>
               <th className="px-3 py-2.5 text-left font-semibold">#</th>
-              <th className="px-3 py-2.5 text-left font-semibold">Player</th>
-              <th className="px-3 py-2.5 text-right font-semibold">Exact</th>
-              <th className="px-3 py-2.5 text-right font-semibold">Winner</th>
+              <th className="px-3 py-2.5 text-left font-semibold">Jogador</th>
+              <th className="px-3 py-2.5 text-right font-semibold">Cravadas</th>
+              <th className="px-3 py-2.5 text-right font-semibold">Resultado</th>
               <th className="px-3 py-2.5 text-right font-semibold">Pts</th>
               <th className="px-3 py-2.5 text-right font-semibold">Pts %</th>
               {hasLive && (
-                <th className="px-3 py-2.5 text-right font-semibold text-danger">Live</th>
+                <th className="px-3 py-2.5 text-right font-semibold text-danger">Ao vivo</th>
               )}
-              <th className="px-3 py-2.5 text-right font-semibold">Stake</th>
-              <th className="px-3 py-2.5 text-right font-semibold text-gold">Prize</th>
+              <th className="px-3 py-2.5 text-right font-semibold">Aposta</th>
+              <th className="px-3 py-2.5 text-right font-semibold text-gold">Prêmio</th>
             </tr>
           </thead>
           <tbody>
@@ -169,7 +169,7 @@ export function LeaderboardView({
                   <td className="tabular px-3 py-2.5 text-mute">{index + 1}</td>
                   <td className="px-3 py-2.5 font-medium">
                     <span className={isMe ? "text-neon" : "text-ink"}>{row.username}</span>
-                    {isMe && <span className="ml-1.5 text-xs text-mute">(you)</span>}
+                    {isMe && <span className="ml-1.5 text-xs text-mute">(você)</span>}
                   </td>
                   <td className="tabular px-3 py-2.5 text-right text-mute">{row.exact}</td>
                   <td className="tabular px-3 py-2.5 text-right text-mute">{row.correct}</td>

@@ -30,14 +30,14 @@ function PointsBadge({ base, points }: { base: number; points: number }) {
   if (base === 3) {
     return (
       <span className="rounded-md bg-gold/15 px-2 py-0.5 text-xs font-bold tracking-wide text-gold">
-        EXACT · +{points}
+        CRAVOU · +{points}
       </span>
     );
   }
   if (base === 1) {
     return (
       <span className="rounded-md bg-neon/15 px-2 py-0.5 text-xs font-bold text-neon">
-        WINNER · +{points}
+        RESULTADO · +{points}
       </span>
     );
   }
@@ -61,7 +61,7 @@ function Stepper({
     <div className="flex items-center gap-1.5">
       <button
         type="button"
-        aria-label="decrease"
+        aria-label="diminuir"
         disabled={disabled || value <= 0}
         onClick={() => onChange(Math.max(0, value - 1))}
         className="flex h-7 w-7 items-center justify-center rounded-md border border-line text-mute hover:text-ink disabled:opacity-30"
@@ -73,7 +73,7 @@ function Stepper({
       </span>
       <button
         type="button"
-        aria-label="increase"
+        aria-label="aumentar"
         disabled={disabled || value >= MAX_SCORE}
         onClick={() => onChange(Math.min(MAX_SCORE, value + 1))}
         className="flex h-7 w-7 items-center justify-center rounded-md border border-line text-mute hover:text-ink disabled:opacity-30"
@@ -113,7 +113,7 @@ export function BetControls(props: BetControlsProps) {
     startTransition(async () => {
       const res = await placeBetAction(matchId, home, away);
       if (!res.ok) {
-        setError(res.error ?? "Could not save.");
+        setError(res.error ?? "Não foi possível salvar.");
         return;
       }
       setSavedTick(true);
@@ -213,10 +213,10 @@ function Footer({
     return (
       <div className="flex items-center justify-between border-t border-line pt-2.5 text-sm">
         <span className="flex items-center gap-1.5 font-semibold text-danger">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-danger" /> LIVE
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-danger" /> AO VIVO
         </span>
         <span className="text-mute">
-          {bet ? `Your pick: ${bet.homePred}–${bet.awayPred}` : "No prediction"}
+          {bet ? `Seu palpite: ${bet.homePred}–${bet.awayPred}` : "Sem palpite"}
         </span>
       </div>
     );
@@ -226,7 +226,7 @@ function Footer({
     return (
       <div className="flex items-center justify-between border-t border-line pt-2.5 text-sm">
         <span className="text-mute">
-          {bet ? `Your pick: ${bet.homePred}–${bet.awayPred}` : "No prediction"}
+          {bet ? `Seu palpite: ${bet.homePred}–${bet.awayPred}` : "Sem palpite"}
         </span>
         {bet && base !== null ? <PointsBadge base={base} points={bet.points ?? 0} /> : null}
       </div>
@@ -236,7 +236,7 @@ function Footer({
   if (!teamsKnown) {
     return (
       <div className="border-t border-line pt-2.5 text-sm text-mute">
-        Teams to be decided — betting opens once the bracket is set.
+        Times a definir — as apostas abrem quando o chaveamento for definido.
       </div>
     );
   }
@@ -245,10 +245,10 @@ function Footer({
     return (
       <div className="flex items-center justify-between border-t border-line pt-2.5 text-sm">
         <span className="flex items-center gap-1.5 text-mute">
-          <Lock size={13} /> Locked
+          <Lock size={13} /> Fechado
         </span>
         <span className="text-mute">
-          {bet ? `Your pick: ${bet.homePred}–${bet.awayPred}` : "No prediction made"}
+          {bet ? `Seu palpite: ${bet.homePred}–${bet.awayPred}` : "Nenhum palpite feito"}
         </span>
       </div>
     );
@@ -261,9 +261,9 @@ function Footer({
         {error ? (
           <span className="text-danger">{error}</span>
         ) : bet ? (
-          "You can edit until 1h before kickoff"
+          "Dá pra editar até 1h antes do jogo"
         ) : (
-          "Make your prediction"
+          "Faça seu palpite"
         )}
       </span>
       <button
@@ -279,14 +279,14 @@ function Footer({
       >
         {savedTick ? (
           <>
-            <Check size={15} /> Saved
+            <Check size={15} /> Salvo
           </>
         ) : pending ? (
-          "Saving…"
+          "Salvando…"
         ) : bet ? (
-          "Update pick"
+          "Atualizar palpite"
         ) : (
-          "Save pick"
+          "Salvar palpite"
         )}
       </button>
     </div>

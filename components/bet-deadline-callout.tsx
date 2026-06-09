@@ -21,11 +21,14 @@ export function BetDeadlineCallout({
   // countdown once mounted.
   const when = now === null ? `on ${formatKickoff(deadlineMs)}` : formatCountdown(deadlineMs, now);
 
-  const headline = variant === "closing" ? "Last call for group-stage bets" : "Group-stage bets close soon";
+  const headline =
+    variant === "closing"
+      ? "Última chamada para as apostas da fase de grupos"
+      : "As apostas da fase de grupos fecham em breve";
   const detail =
     variant === "closing"
-      ? `the final group matches lock ${when}, 1h before kickoff.`
-      : `the first match locks ${when} (bets close 1h before each kickoff). Lock in your group picks!`;
+      ? `os últimos jogos da fase de grupos fecham ${when}, 1h antes do jogo.`
+      : `o primeiro jogo fecha ${when} (as apostas fecham 1h antes de cada jogo). Garanta seus palpites!`;
 
   return (
     <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3">

@@ -26,7 +26,7 @@ export async function issueCode(email: string): Promise<string> {
     .limit(1);
 
   if (existing[0] && Date.now() - existing[0].createdAt.getTime() < RESEND_COOLDOWN_MS) {
-    throw new Error("Please wait a moment before requesting another code.");
+    throw new Error("Aguarde um momento antes de pedir outro código.");
   }
 
   const code = generateCode();

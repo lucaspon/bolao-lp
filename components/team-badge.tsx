@@ -29,7 +29,7 @@ export function TeamBadge({ code, placeholder, align = "left", className }: Prop
         </span>
       ) : (
         <span className="truncate text-sm italic text-mute">
-          {placeholder ?? "To be decided"}
+          {placeholder ?? "A definir"}
         </span>
       )}
     </div>

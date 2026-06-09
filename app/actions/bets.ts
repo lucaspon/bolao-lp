@@ -15,20 +15,20 @@ export async function placeBetAction(
   awayPred: number,
 ): Promise<ActionResult> {
   const user = await getSession();
-  if (!user) return { ok: false, error: "Please sign in again." };
+  if (!user) return { ok: false, error: "Faça login novamente." };
 
   const home = scoreSchema.safeParse(homePred);
   const away = scoreSchema.safeParse(awayPred);
   if (!home.success || !away.success) {
-    return { ok: false, error: "Scores must be whole numbers between 0 and 30." };
+    return { ok: false, error: "Os placares devem ser números inteiros de 0 a 30." };
   }
 
   const match = await getMatchById(matchId);
-  if (!match) return { ok: false, error: "Match not found." };
+  if (!match) return { ok: false, error: "Jogo não encontrado." };
 
   // Server-side enforcement of the betting window — the UI also mirrors this.
   if (!canBet(match)) {
-    return { ok: false, error: "Betting is closed for this match." };
+    return { ok: false, error: "As apostas para este jogo estão fechadas." };
   }
 
   await upsertBet(user.id, matchId, home.data, away.data);
@@ -40,12 +40,12 @@ export async function placeBetAction(
 
 export async function clearBetAction(matchId: number): Promise<ActionResult> {
   const user = await getSession();
-  if (!user) return { ok: false, error: "Please sign in again." };
+  if (!user) return { ok: false, error: "Faça login novamente." };
 
   const match = await getMatchById(matchId);
-  if (!match) return { ok: false, error: "Match not found." };
+  if (!match) return { ok: false, error: "Jogo não encontrado." };
   if (!canBet(match)) {
-    return { ok: false, error: "Betting is closed for this match." };
+    return { ok: false, error: "As apostas para este jogo estão fechadas." };
   }
 
   await deleteBet(user.id, matchId);

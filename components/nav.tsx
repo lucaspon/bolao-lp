@@ -15,10 +15,10 @@ import { logoutAction } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { href: "/matches", label: "Matches", icon: ListChecks },
+  { href: "/matches", label: "Jogos", icon: ListChecks },
   { href: "/regras", label: "Regras", icon: BookOpen },
-  { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
-  { href: "/profile", label: "My Bets", icon: User },
+  { href: "/leaderboard", label: "Classificação", icon: BarChart3 },
+  { href: "/profile", label: "Minhas Apostas", icon: User },
 ];
 
 export function Nav({
@@ -67,7 +67,7 @@ export function Nav({
           <form action={logoutAction}>
             <button
               type="submit"
-              aria-label="Log out"
+              aria-label="Sair"
               className="flex items-center rounded-lg px-2 py-1.5 text-mute transition hover:text-danger"
             >
               <LogOut size={16} />

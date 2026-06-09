@@ -42,8 +42,8 @@ export default async function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="mb-1 font-display text-2xl font-bold tracking-wide">My Bets</h1>
-      <p className="mb-5 text-sm text-mute">Signed in as @{user.username}</p>
+      <h1 className="mb-1 font-display text-2xl font-bold tracking-wide">Minhas Apostas</h1>
+      <p className="mb-5 text-sm text-mute">Conectado como @{user.username}</p>
 
       <div className="mb-6">
         <PayEntry
@@ -55,18 +55,18 @@ export default async function ProfilePage() {
       </div>
 
       <div className="mb-7 grid grid-cols-2 gap-2.5 sm:grid-cols-5">
-        <Stat value={points} label="points" />
-        <Stat value={myPicks.length} label="picks" />
-        <Stat value={exact} label="exact" />
-        <Stat value={correct} label="winners" />
-        <Stat value={accuracy === null ? "–" : `${accuracy}%`} label="accuracy" />
+        <Stat value={points} label="pontos" />
+        <Stat value={myPicks.length} label="palpites" />
+        <Stat value={exact} label="cravadas" />
+        <Stat value={correct} label="resultados" />
+        <Stat value={accuracy === null ? "–" : `${accuracy}%`} label="precisão" />
       </div>
 
       {myPicks.length === 0 ? (
         <p className="rounded-xl border border-line bg-panel p-6 text-center text-sm text-mute">
-          You have not placed any predictions yet.{" "}
+          Você ainda não fez nenhum palpite.{" "}
           <a href="/matches" className="text-neon hover:underline">
-            Head to the matches →
+            Ir para os jogos →
           </a>
         </p>
       ) : (

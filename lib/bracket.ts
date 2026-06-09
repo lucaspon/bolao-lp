@@ -71,11 +71,11 @@ export function slotShortLabel(slot: Slot): string {
     case "groupRunnerUp":
       return `2${slot.group}`;
     case "thirdPlace":
-      return "3rd";
+      return "3º";
     case "winnerOf":
-      return `W${slot.match}`;
+      return `V${slot.match}`;
     case "loserOf":
-      return `L${slot.match}`;
+      return `P${slot.match}`;
   }
 }
 

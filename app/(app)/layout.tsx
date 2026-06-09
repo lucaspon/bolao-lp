@@ -15,7 +15,7 @@ export default async function AppLayout({
         {children}
       </main>
       <footer className="border-t border-line py-5 text-center text-xs text-mute">
-        LCM · Bolão da Copa 2026 · times shown in Brasília time
+        LCM · Bolão da Copa 2026 · horários no fuso de Brasília
       </footer>
     </>
   );

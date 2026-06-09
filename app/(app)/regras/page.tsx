@@ -115,7 +115,7 @@ export default async function RegrasPage() {
             <li>
               Aposte de <strong>{brl(ENTRY_MIN_CENTS)}</strong> a{" "}
               <strong>{brl(ENTRY_MAX_TOTAL_CENTS)}</strong> no total, via PIX, na aba{" "}
-              <strong>My Bets</strong>.
+              <strong>Minhas Apostas</strong>.
             </li>
             <li>
               <strong>Duas janelas:</strong> aposte livremente <strong>antes</strong> da fase de

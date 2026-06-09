@@ -10,7 +10,7 @@ import type { ActionResult } from "@/lib/types";
 // force a refresh on demand instead of waiting for the next cron tick.
 export async function adminSyncAction(): Promise<ActionResult> {
   const user = await getSession();
-  if (!user?.isAdmin) return { ok: false, error: "Admins only." };
+  if (!user?.isAdmin) return { ok: false, error: "Apenas administradores." };
 
   try {
     await syncMatches();
@@ -20,6 +20,6 @@ export async function adminSyncAction(): Promise<ActionResult> {
     revalidatePath("/admin");
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Sync failed." };
+    return { ok: false, error: err instanceof Error ? err.message : "Falha na sincronização." };
   }
 }

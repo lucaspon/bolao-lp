@@ -4,12 +4,12 @@ import type { Match, Stage } from "./db/schema";
 export const BET_LOCK_MS = 60 * 60 * 1000;
 
 export const STAGES: { key: Stage; label: string; short: string }[] = [
-  { key: "group", label: "Group Stage", short: "Groups" },
-  { key: "round_of_32", label: "Round of 32", short: "R32" },
-  { key: "round_of_16", label: "Round of 16", short: "R16" },
-  { key: "quarter", label: "Quarter-finals", short: "QF" },
-  { key: "semi", label: "Semi-finals", short: "SF" },
-  { key: "third_place", label: "Third place", short: "3rd" },
+  { key: "group", label: "Fase de Grupos", short: "Grupos" },
+  { key: "round_of_32", label: "16-avos de final", short: "16-avos" },
+  { key: "round_of_16", label: "Oitavas de final", short: "Oitavas" },
+  { key: "quarter", label: "Quartas de final", short: "Quartas" },
+  { key: "semi", label: "Semifinais", short: "Semis" },
+  { key: "third_place", label: "Disputa de 3º lugar", short: "3º lugar" },
   { key: "final", label: "Final", short: "Final" },
 ];
 

@@ -15,7 +15,7 @@ export function MatchCard({ match }: { match: MatchWithBet }) {
         <span className="flex min-w-0 items-center gap-2">
           {match.groupLabel && (
             <span className="shrink-0 rounded bg-panel2 px-1.5 py-0.5 font-semibold text-ink">
-              Group {match.groupLabel}
+              Grupo {match.groupLabel}
             </span>
           )}
           <span className="truncate">{match.venue}</span>
@@ -23,10 +23,10 @@ export function MatchCard({ match }: { match: MatchWithBet }) {
         <span className="shrink-0">
           {live ? (
             <span className="flex items-center gap-1 rounded bg-danger/15 px-1.5 py-0.5 font-bold text-danger">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-danger" /> LIVE
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-danger" /> AO VIVO
             </span>
           ) : finished ? (
-            <span className="rounded bg-neon/15 px-1.5 py-0.5 font-bold text-neon">FT</span>
+            <span className="rounded bg-neon/15 px-1.5 py-0.5 font-bold text-neon">FIM</span>
           ) : (
             <Countdown kickoffMs={kickoffMs} />
           )}
