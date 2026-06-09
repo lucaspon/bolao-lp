@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { db } from "./db/client";
 import { matches, type Stage, type MatchStatus } from "./db/schema";
 import { rescoreMatch } from "./db/queries";
@@ -86,15 +87,24 @@ export async function syncMatches(): Promise<SyncResult> {
       .values(values)
       .onConflictDoUpdate({
         target: matches.apiMatchId,
+        // Non-destructive merge: the football-data feed occasionally returns a
+        // match with its teams/scores momentarily missing. We must never clobber
+        // a value we already know with a transient null — teams only get decided,
+        // scores only get set, and a finished match never un-finishes. So keep
+        // the existing value when the incoming one is null, and don't let status
+        // regress out of live/finished.
         set: {
           stage: values.stage,
-          groupLabel: values.groupLabel,
-          homeTeam: values.homeTeam,
-          awayTeam: values.awayTeam,
+          groupLabel: sql`coalesce(excluded.group_label, ${matches.groupLabel})`,
+          homeTeam: sql`coalesce(excluded.home_team, ${matches.homeTeam})`,
+          awayTeam: sql`coalesce(excluded.away_team, ${matches.awayTeam})`,
           kickoffAt: values.kickoffAt,
-          status: values.status,
-          homeScore: values.homeScore,
-          awayScore: values.awayScore,
+          status: sql`case
+            when ${matches.status} = 'finished' then ${matches.status}
+            when ${matches.status} = 'live' and excluded.status = 'scheduled' then ${matches.status}
+            else excluded.status end`,
+          homeScore: sql`coalesce(excluded.home_score, ${matches.homeScore})`,
+          awayScore: sql`coalesce(excluded.away_score, ${matches.awayScore})`,
           pointsMultiplier: values.pointsMultiplier,
         },
       })
