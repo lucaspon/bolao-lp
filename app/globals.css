@@ -22,7 +22,6 @@
   --mute: #8a92a8;
   --neon: #34e27a; /* floodlit-pitch green */
   --neon-soft: #1f3b2e;
-  --win: #10b981; /* deeper emerald — concluded/settled wins */
   --gold: #ffd24a;
   --danger: #ff5d6c;
   --blue: #5b9dff;
@@ -37,7 +36,6 @@
   --color-mute: var(--mute);
   --color-neon: var(--neon);
   --color-neonsoft: var(--neon-soft);
-  --color-win: var(--win);
   --color-gold: var(--gold);
   --color-danger: var(--danger);
   --color-blue: var(--blue);

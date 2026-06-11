@@ -65,7 +65,9 @@ function Side_({
         reverse ? "flex-row-reverse" : "",
       )}
     >
-      <span className="shrink-0 text-sm leading-none">{team ? team.flag : "⚽"}</span>
+      <span className="shrink-0 text-sm leading-none">
+        {team ? team.flag : "⚽"}
+      </span>
       <span
         className={cn(
           "truncate font-display text-[11px] font-semibold",
@@ -78,7 +80,13 @@ function Side_({
   );
 }
 
-function ScoreBox({ children, live }: { children: React.ReactNode; live?: boolean }) {
+function ScoreBox({
+  children,
+  live,
+}: {
+  children: React.ReactNode;
+  live?: boolean;
+}) {
   return (
     <span
       className={cn(
@@ -108,10 +116,14 @@ export function MatchPill({
   const isBrazil = match.homeTeam === BRAZIL || match.awayTeam === BRAZIL;
 
   const now = useNow();
-  const locked = now === null ? match.initialLocked : isLockedAt(match.kickoffMs, now);
+  const locked =
+    now === null ? match.initialLocked : isLockedAt(match.kickoffMs, now);
   const editable = teamsKnown && match.status === "scheduled" && !locked;
   const closingSoon =
-    editable && (now === null ? match.initialClosingSoon : isClosingSoon(match.kickoffMs, now));
+    editable &&
+    (now === null
+      ? match.initialClosingSoon
+      : isClosingSoon(match.kickoffMs, now));
 
   const [home, setHome] = useState(bet?.homePred?.toString() ?? "");
   const [away, setAway] = useState(bet?.awayPred?.toString() ?? "");
@@ -171,7 +183,7 @@ export function MatchPill({
 
   const borderClass = finished
     ? base === 3
-      ? "border-win/70"
+      ? "border-neon/80"
       : base === 1
         ? "border-gold/60"
         : "border-danger/60"
@@ -206,7 +218,11 @@ export function MatchPill({
     statusLabel = bet ? "salvo" : "aberto";
   }
 
-  function scoreInput(side: Side, value: string, setValue: (next: string) => void) {
+  function scoreInput(
+    side: Side,
+    value: string,
+    setValue: (next: string) => void,
+  ) {
     return (
       <input
         inputMode="numeric"
@@ -215,7 +231,9 @@ export function MatchPill({
         aria-label={`${side} score`}
         onChange={(event) => setValue(event.target.value.replace(/\D/g, ""))}
         onBlur={() => commit(home, away)}
-        onKeyDown={(event) => event.key === "Enter" && event.currentTarget.blur()}
+        onKeyDown={(event) =>
+          event.key === "Enter" && event.currentTarget.blur()
+        }
         className={cn(
           "tabular h-5 w-5 rounded border bg-base text-center text-sm font-bold outline-none",
           kb.editing && kb.activeSide === side
@@ -233,12 +251,15 @@ export function MatchPill({
       tabIndex={-1}
       onMouseDown={() => kb.select?.(match.id)}
       className={cn(
-        "flex flex-col rounded-lg px-2 py-2 outline-none transition",
+        "flex min-h-[68px] flex-col rounded-lg px-2 py-2 outline-none transition",
         live
           ? "live-border"
           : isBrazil
             ? "brazil-border"
-            : cn("border bg-panel", emphasis && !finished ? "border-gold/60" : borderClass),
+            : cn(
+                "border bg-panel",
+                emphasis && !finished ? "border-gold/60" : borderClass,
+              ),
         kb.editing
           ? "ring-2 ring-neon"
           : kb.selected
@@ -247,38 +268,47 @@ export function MatchPill({
         className,
       )}
     >
-      {/* Three rows centred as a block. `my-auto` distributes any leftover
-          vertical space evenly above and below when pills sit in a taller grid
-          cell. `invisible` (not hidden) on "seu palpite" reserves its space so
-          every pill is the same height regardless of match state. */}
+      {/* Rows centred as a block. `my-auto` distributes any leftover vertical
+          space evenly above and below when pills sit in a taller grid cell. The
+          "seu palpite" row only renders for live/finished matches, so pending
+          pills don't reserve empty space for it. */}
       <div className="my-auto flex flex-col items-center gap-1">
         {/* Score row — flex-1 sides guarantee the score is exactly centred */}
         <div className="flex w-full items-center gap-1">
           <Side_ code={match.homeTeam} placeholder={match.homePlaceholder} />
 
           <span className="flex shrink-0 items-center">
-            {editable ? scoreInput("home", home, setHome) : (
-              <ScoreBox live={live}>{showActual ? match.homeScore : (bet?.homePred ?? "–")}</ScoreBox>
+            {editable ? (
+              scoreInput("home", home, setHome)
+            ) : (
+              <ScoreBox live={live}>
+                {showActual ? match.homeScore : (bet?.homePred ?? "–")}
+              </ScoreBox>
             )}
             <span className="px-0.5 text-[10px] text-mute">–</span>
-            {editable ? scoreInput("away", away, setAway) : (
-              <ScoreBox live={live}>{showActual ? match.awayScore : (bet?.awayPred ?? "–")}</ScoreBox>
+            {editable ? (
+              scoreInput("away", away, setAway)
+            ) : (
+              <ScoreBox live={live}>
+                {showActual ? match.awayScore : (bet?.awayPred ?? "–")}
+              </ScoreBox>
             )}
           </span>
 
-          <Side_ code={match.awayTeam} placeholder={match.awayPlaceholder} reverse />
+          <Side_
+            code={match.awayTeam}
+            placeholder={match.awayPlaceholder}
+            reverse
+          />
         </div>
 
-        {/* Seu palpite — invisible on pending/open matches to keep pill height
-            consistent; visible once the match is live or finished. */}
-        <div
-          className={cn(
-            "text-center text-[9px] leading-none text-mute",
-            !(showActual && bet) && "invisible",
-          )}
-        >
-          {showActual && bet ? `seu palpite ${bet.homePred}–${bet.awayPred}` : "·"}
-        </div>
+        {/* Seu palpite — only rendered for live/finished matches with a bet, so
+            pending pills take no space for it. */}
+        {showActual && bet && (
+          <div className="text-center text-[9px] leading-none text-mute">
+            seu palpite {bet.homePred}–{bet.awayPred}
+          </div>
+        )}
 
         {/* Date + status */}
         <div

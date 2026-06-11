@@ -29,7 +29,7 @@ const MAX_SCORE = 30;
 function PointsBadge({ base, points }: { base: number; points: number }) {
   if (base === 3) {
     return (
-      <span className="rounded-md bg-win/15 px-2 py-0.5 text-xs font-bold tracking-wide text-win">
+      <span className="rounded-md bg-neon/15 px-2 py-0.5 text-xs font-bold tracking-wide text-neon">
         CRAVOU · +{points}
       </span>
     );
