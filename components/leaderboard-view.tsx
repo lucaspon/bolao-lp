@@ -99,34 +99,34 @@ export function LeaderboardView({
             </p>
           )}
         </div>
-        {hasLive && (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          {hasLive && (
             <span className="flex items-center gap-1.5 rounded-md bg-danger/15 px-2 py-1 text-xs font-bold text-danger">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-danger" />
               {liveCount} ao vivo
             </span>
-            <div className="flex rounded-lg border border-line p-0.5 text-xs font-semibold">
-              {(["live", "official"] as View[]).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setView(option)}
-                  className={cn(
-                    "rounded-md px-2.5 py-1 capitalize transition",
-                    view === option ? "bg-panel2 text-ink" : "text-mute hover:text-ink",
-                  )}
-                >
-                  {option === "live" ? "ao vivo" : "oficial"}
-                </button>
-              ))}
-            </div>
+          )}
+          <div className="flex rounded-lg border border-line p-0.5 text-xs font-semibold">
+            {(["live", "official"] as View[]).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setView(option)}
+                className={cn(
+                  "rounded-md px-2.5 py-1 transition",
+                  view === option ? "bg-panel2 text-ink" : "text-mute hover:text-ink",
+                )}
+              >
+                {option === "live" ? "Prévia" : "Oficial"}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
       </div>
 
       {view === "live" && (
         <p className="mb-4 text-xs text-mute">
-          Classificação provisória — inclui jogos em andamento no placar atual. Não é final.
+          Prévia — conta os jogos em andamento pelo placar atual. Não é a classificação final.
         </p>
       )}
 
@@ -158,17 +158,32 @@ export function LeaderboardView({
           <tbody>
             {sorted.map((row, index) => {
               const isMe = row.userId === meId;
+              const isTop3 = index < 3 && value(row) > 0;
               return (
                 <tr
                   key={row.userId}
                   className={cn(
                     "border-t border-line",
-                    isMe ? "bg-neon/10" : index % 2 ? "bg-panel/40" : "",
+                    isTop3
+                      ? "bg-gold/10"
+                      : isMe
+                        ? "bg-neon/10"
+                        : index % 2
+                          ? "bg-panel/40"
+                          : "",
                   )}
                 >
-                  <td className="tabular px-3 py-2.5 text-mute">{index + 1}</td>
+                  <td className="tabular px-3 py-2.5 text-center">
+                    {isTop3 ? (
+                      <span className="text-base">{MEDALS[index]}</span>
+                    ) : (
+                      <span className="text-mute">{index + 1}</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2.5 font-medium">
-                    <span className={isMe ? "text-neon" : "text-ink"}>{row.username}</span>
+                    <span className={isMe ? "text-neon" : isTop3 ? "text-gold" : "text-ink"}>
+                      {row.username}
+                    </span>
                     {isMe && <span className="ml-1.5 text-xs text-mute">(você)</span>}
                   </td>
                   <td className="tabular px-3 py-2.5 text-right text-mute">{row.exact}</td>
@@ -176,7 +191,7 @@ export function LeaderboardView({
                   <td
                     className={cn(
                       "tabular px-3 py-2.5 text-right font-display text-lg font-bold",
-                      view === "official" ? "text-ink" : "text-mute",
+                      isTop3 ? "text-gold" : view === "official" ? "text-ink" : "text-mute",
                     )}
                   >
                     {row.points}
