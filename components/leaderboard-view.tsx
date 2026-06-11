@@ -36,7 +36,9 @@ function Podium({
               row.userId === meId ? "text-neon" : "text-ink",
             )}
           >
-            {row.username}
+            {row.username === "Claude AI" ? (
+              <>🤖 <span className="font-mono">{row.username}</span></>
+            ) : row.username}
           </div>
           <div
             className={cn(
@@ -104,8 +106,8 @@ export function LeaderboardView({
           <h1 className="font-display text-2xl font-bold tracking-wide">Classificação</h1>
           {potCents > 0 && (
             <p className="text-sm text-mute">
-              Pote: <span className="font-semibold text-gold">{brl(potCents)}</span> · top 3 levam,
-              proporcional a pontos × aposta
+              Pote: <span className="font-semibold text-gold">{brl(potCents)}</span> · top 3 levam
+              (empates expandem o pódio), proporcional a pontos × aposta
             </p>
           )}
         </div>
@@ -192,9 +194,15 @@ export function LeaderboardView({
                     )}
                   </td>
                   <td className="px-3 py-2.5 font-medium">
-                    <span className={isMe ? "text-neon" : gold ? "text-gold" : "text-ink"}>
-                      {row.username}
-                    </span>
+                    {row.username === "Claude AI" ? (
+                      <span className={isMe ? "text-neon" : gold ? "text-gold" : "text-ink"}>
+                        🤖 <span className="font-mono">{row.username}</span>
+                      </span>
+                    ) : (
+                      <span className={isMe ? "text-neon" : gold ? "text-gold" : "text-ink"}>
+                        {row.username}
+                      </span>
+                    )}
                     {isMe && <span className="ml-1.5 text-xs text-mute">(você)</span>}
                   </td>
                   <td className="tabular px-3 py-2.5 text-right text-mute">{row.exact}</td>

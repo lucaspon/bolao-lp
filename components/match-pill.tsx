@@ -261,16 +261,13 @@ export function MatchPill({
         <Side_ code={match.awayTeam} placeholder={match.awayPlaceholder} reverse />
       </div>
 
-      {/* Your bet — a separate reserved line (invisible when N/A) so every pill is
-          the same height while the score stays centered with the flags above. */}
-      <div
-        className={cn(
-          "mt-0.5 text-center text-[9px] leading-none text-mute",
-          !(showActual && bet) && "invisible",
-        )}
-      >
-        {showActual && bet ? `seu palpite ${bet.homePred}–${bet.awayPred}` : "seu –"}
-      </div>
+      {/* Show the user's bet below the live/settled score. Hidden for open
+          matches so the pill stays compact and content is vertically centred. */}
+      {showActual && bet && (
+        <div className="mt-0.5 text-center text-[9px] leading-none text-mute">
+          seu palpite {bet.homePred}–{bet.awayPred}
+        </div>
+      )}
 
       <div
         className={cn(

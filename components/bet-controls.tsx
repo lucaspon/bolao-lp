@@ -228,7 +228,9 @@ function Footer({
         <span className="text-mute">
           {bet ? `Seu palpite: ${bet.homePred}–${bet.awayPred}` : "Sem palpite"}
         </span>
-        {bet && base !== null ? <PointsBadge base={base} points={bet.points ?? 0} /> : null}
+        {bet && base !== null && bet.points !== null ? (
+        <PointsBadge base={base} points={bet.points} />
+      ) : null}
       </div>
     );
   }

@@ -3,6 +3,14 @@ import { db } from "./db/client";
 import { matches, type Stage, type MatchStatus } from "./db/schema";
 import { rescoreMatch, hasUnscoredBets } from "./db/queries";
 import { matchPointsMultiplier } from "./match";
+import { TEAMS } from "./teams";
+
+// Reverse map: lowercased team name → TLA code. Used as a fallback when the
+// football-data API returns a match with an empty tla but a valid name field
+// (Curaçao is a known offender — it gets tla="" intermittently).
+const TEAM_NAME_TO_CODE: Record<string, string> = Object.fromEntries(
+  Object.values(TEAMS).map((t) => [t.name.toLowerCase(), t.code]),
+);
 
 const API_BASE = "https://api.football-data.org/v4";
 const COMPETITION = "WC"; // FIFA World Cup
@@ -24,6 +32,14 @@ function mapStatus(apiStatus: string): MatchStatus {
 }
 
 type ApiTeam = { tla: string | null; name: string | null };
+
+function resolveTeamCode(apiTeam: ApiTeam | null | undefined): string | null {
+  const tla = apiTeam?.tla?.trim() || null;
+  if (tla) return tla;
+  const name = apiTeam?.name?.trim().toLowerCase();
+  if (name) return TEAM_NAME_TO_CODE[name] ?? null;
+  return null;
+}
 type ApiMatch = {
   id: number;
   utcDate: string;
@@ -67,10 +83,11 @@ export async function syncMatches(): Promise<SyncResult> {
     const hasScore = home !== null && away !== null;
     const homeScore = status === "scheduled" || !hasScore ? null : home;
     const awayScore = status === "scheduled" || !hasScore ? null : away;
-    // `?? null` isn't enough: football-data can return an empty-string tla, which
-    // would (being non-null) clobber a known team. Treat blank as null.
-    const homeTeam = apiMatch.homeTeam?.tla?.trim() || null;
-    const awayTeam = apiMatch.awayTeam?.tla?.trim() || null;
+    // `?? null` isn't enough: football-data can return an empty-string tla. We
+    // also fall back to the team name (resolves e.g. "Curaçao" → "CUW") when
+    // tla is missing, so a blank tla never permanently erases a known team.
+    const homeTeam = resolveTeamCode(apiMatch.homeTeam);
+    const awayTeam = resolveTeamCode(apiMatch.awayTeam);
 
     const values = {
       extId: `wc-${apiMatch.id}`,

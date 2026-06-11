@@ -155,15 +155,23 @@ export default async function RegrasPage() {
           </p>
         </Section>
 
-        <Section title="Prêmios — só o top 3">
+        <Section title="Prêmios — top 3 (ou mais, se houver empate)">
           <p>
-            Apenas os <strong>3 primeiros colocados</strong> (em pontos, entre quem apostou) levam
-            prêmio. Os demais recebem <strong>R$0</strong>. O dinheiro <em>não</em> compra posição
-            no pódio — só os melhores palpiteiros sobem.
+            Normalmente, os <strong>3 primeiros colocados</strong> (em pontos, entre quem apostou)
+            levam prêmio. Os demais recebem <strong>R$0</strong>. O dinheiro <em>não</em> compra
+            posição no pódio — só os melhores palpiteiros sobem.
+          </p>
+          <p className="rounded-lg border border-gold/30 bg-gold/10 p-3">
+            ⚖️ <strong className="text-gold">Empate de pontos expande o pódio.</strong> Se dois ou
+            mais jogadores empatarem em pontos na borda do pódio (ex.: dois jogadores com o mesmo
+            total de pontos brigando pela 3ª posição), <strong>todos os empatados entram no
+            pote</strong> — o grupo de premiados se expande automaticamente. Em caso de empate, a
+            ordem de desempate para exibição é: total apostado (maior primeiro), depois cravadas,
+            depois nome.
           </p>
           <p>
-            O pote é dividido entre os 3 proporcionalmente ao seu <strong>peso</strong>, que trava
-            a aposta por fase:
+            O pote é dividido entre os premiados proporcionalmente ao seu <strong>peso</strong>,
+            que trava a aposta por fase:
           </p>
           <p className="rounded-lg bg-base p-3 text-center font-mono text-xs text-ink">
             peso = (pts de grupos × aposta pré-grupos) + (pts de mata-mata × aposta total)
