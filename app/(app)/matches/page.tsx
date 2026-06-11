@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth/session";
 import { getMatchesForUser, type MatchWithBet } from "@/lib/db/queries";
-import { canBet, isLockedAt, isClosingSoon, BET_LOCK_MS } from "@/lib/match";
+import { canBet, isLockedAt, isClosingSoon } from "@/lib/match";
+import { stakingWindow } from "@/lib/staking";
 import { BetDeadlineCallout } from "@/components/bet-deadline-callout";
 import { GROUP_LABELS } from "@/lib/teams";
 import { BRACKET, matchNoForApiId, slotShortLabel } from "@/lib/bracket";
@@ -92,18 +93,20 @@ function StatChip({ value, label }: { value: number | string; label: string }) {
   );
 }
 
-// Active group-stage betting deadline: count down to the first match locking,
-// then (once the stage is under way) to the last. Null once all are locked.
-function activeGroupDeadline(
-  groupKickoffs: number[],
-): { deadlineMs: number; variant: "upcoming" | "closing" } | null {
-  if (groupKickoffs.length === 0) return null;
-  const firstLock = Math.min(...groupKickoffs) - BET_LOCK_MS;
-  const lastLock = Math.max(...groupKickoffs) - BET_LOCK_MS;
-  const nowMs = Date.now();
-  if (nowMs < firstLock) return { deadlineMs: firstLock, variant: "upcoming" };
-  if (nowMs < lastLock) return { deadlineMs: lastLock, variant: "closing" };
-  return null;
+// Only during the top-up staking window (between the last group match and the
+// first knockout) do we surface a callout — it returns when that window closes
+// (the knockouts begin). Null otherwise, so the callout stays hidden.
+function topupDeadlineMs(matches: MatchWithBet[]): number | null {
+  const toMs = (list: MatchWithBet[]) => list.map((m) => new Date(m.kickoffAt).getTime());
+  const group = toMs(matches.filter((m) => m.stage === "group"));
+  const r32 = toMs(matches.filter((m) => m.stage === "round_of_32"));
+  if (group.length === 0 || r32.length === 0) return null;
+  const bounds = {
+    firstGroupMs: Math.min(...group),
+    lastGroupMs: Math.max(...group),
+    firstKnockoutMs: Math.min(...r32),
+  };
+  return stakingWindow(bounds).phase === "topup" ? bounds.firstKnockoutMs : null;
 }
 
 export default async function MatchesPage() {
@@ -120,9 +123,7 @@ export default async function MatchesPage() {
   const groupMatches = matches.filter((match) => match.stage === "group");
   const knockoutPills = toBracketPills(matches.filter((match) => match.stage !== "group"));
 
-  const betDeadline = activeGroupDeadline(
-    groupMatches.map((match) => new Date(match.kickoffAt).getTime()),
-  );
+  const topupCloses = topupDeadlineMs(matches);
 
   const panels: StagePanel[] = [
     {
@@ -158,7 +159,7 @@ export default async function MatchesPage() {
         </div>
       </div>
 
-      {betDeadline && <BetDeadlineCallout {...betDeadline} />}
+      {topupCloses && <BetDeadlineCallout deadlineMs={topupCloses} />}
 
       <p className="mb-3 text-xs text-mute">
         ⌨️ Setas movem · <span className="text-ink">Enter</span> para apostar ·{" "}
