@@ -147,6 +147,19 @@ export async function deleteBet(userId: number, matchId: number): Promise<void> 
   await db.delete(bets).where(and(eq(bets.userId, userId), eq(bets.matchId, matchId)));
 }
 
+// Marks a match in-play with its current score (the live overlay from
+// API-Football). Never touches a finished match.
+export async function applyLiveScore(
+  matchId: number,
+  homeScore: number,
+  awayScore: number,
+): Promise<void> {
+  await db
+    .update(matches)
+    .set({ status: "live", homeScore, awayScore })
+    .where(and(eq(matches.id, matchId), ne(matches.status, "finished")));
+}
+
 // Recomputes points for every bet on a match. Used by the admin result entry
 // and the live-results sync.
 export async function rescoreMatch(
