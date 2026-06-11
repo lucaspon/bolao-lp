@@ -193,9 +193,7 @@ export function MatchPill({
         ? "border-line"
         : closingSoon
           ? "border-gold/70"
-          : bet
-            ? "border-neon/40"
-            : "border-line";
+          : "border-line";
 
   let statusLabel: string;
   if (live) {
