@@ -169,7 +169,7 @@ export function MatchPill({
   // right result (+1), red for a miss (+0). (Live is handled by `live-border`.)
   const borderClass = finished
     ? base === 3
-      ? "border-neon/60"
+      ? "border-win/70"
       : base === 1
         ? "border-gold/60"
         : "border-danger/60"
@@ -248,28 +248,28 @@ export function MatchPill({
       <div className="flex items-center justify-between gap-1 text-[11px]">
         <Side_ code={match.homeTeam} placeholder={match.homePlaceholder} />
 
-        <span className="flex shrink-0 flex-col items-center">
-          <span className="flex items-center">
-            {editable ? scoreInput("home", home, setHome) : (
-              <ScoreBox live={live}>{showActual ? match.homeScore : (bet?.homePred ?? "–")}</ScoreBox>
-            )}
-            <span className="px-0.5 text-mute">×</span>
-            {editable ? scoreInput("away", away, setAway) : (
-              <ScoreBox live={live}>{showActual ? match.awayScore : (bet?.awayPred ?? "–")}</ScoreBox>
-            )}
-          </span>
-          {/* Always rendered (invisible when N/A) so every pill is the same height. */}
-          <span
-            className={cn(
-              "mt-0.5 text-[9px] leading-none text-mute",
-              !(showActual && bet) && "invisible",
-            )}
-          >
-            {showActual && bet ? `seu ${bet.homePred}–${bet.awayPred}` : "seu –"}
-          </span>
+        <span className="flex shrink-0 items-center">
+          {editable ? scoreInput("home", home, setHome) : (
+            <ScoreBox live={live}>{showActual ? match.homeScore : (bet?.homePred ?? "–")}</ScoreBox>
+          )}
+          <span className="px-0.5 text-mute">×</span>
+          {editable ? scoreInput("away", away, setAway) : (
+            <ScoreBox live={live}>{showActual ? match.awayScore : (bet?.awayPred ?? "–")}</ScoreBox>
+          )}
         </span>
 
         <Side_ code={match.awayTeam} placeholder={match.awayPlaceholder} reverse />
+      </div>
+
+      {/* Your bet — a separate reserved line (invisible when N/A) so every pill is
+          the same height while the score stays centered with the flags above. */}
+      <div
+        className={cn(
+          "mt-0.5 text-center text-[9px] leading-none text-mute",
+          !(showActual && bet) && "invisible",
+        )}
+      >
+        {showActual && bet ? `seu palpite ${bet.homePred}–${bet.awayPred}` : "seu –"}
       </div>
 
       <div

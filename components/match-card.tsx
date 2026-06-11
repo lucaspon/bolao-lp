@@ -27,7 +27,7 @@ export function MatchCard({ match }: { match: MatchWithBet }) {
         "border bg-panel",
         finished
           ? base === 3
-            ? "border-neon/60"
+            ? "border-win/70"
             : base === 1
               ? "border-gold/60"
               : "border-danger/60"
