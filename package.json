@@ -1,7 +1,8 @@
 {
-  "name": "lcm-bolao",
+  "name": "bolao-lp",
   "version": "0.1.0",
   "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
   "scripts": {
     "dev": "doppler run -- next dev",
     "build": "next build",

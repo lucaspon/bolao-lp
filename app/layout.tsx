@@ -14,8 +14,8 @@ const oswald = Oswald({
 });
 
 export const metadata: Metadata = {
-  title: "Bolão LCM 2026",
-  description: "Bolão da Copa do Mundo 2026 — Lumina × OKT",
+  title: "Bolão da Copa 2026",
+  description: "Bolão da Copa do Mundo 2026",
 };
 
 export default function RootLayout({

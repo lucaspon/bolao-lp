@@ -18,7 +18,7 @@ export async function requestCodeAction(email: string): Promise<ActionResult> {
 
   const value = parsed.data;
   if (!isAllowedEmail(value)) {
-    return { ok: false, error: "Use seu e-mail @luminacm.com ou @oktcapital.com." };
+    return { ok: false, error: "Use um e-mail de um domínio autorizado." };
   }
 
   try {

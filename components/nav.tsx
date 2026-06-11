@@ -39,7 +39,7 @@ export function Nav({
         <Link href="/matches" className="flex items-center gap-2">
           <Trophy className="text-neon" size={20} />
           <span className="font-display text-lg font-bold tracking-wide">
-            BOLÃO LCM <span className="text-neon">2026</span>
+            BOLÃO <span className="text-neon">2026</span>
           </span>
         </Link>
 

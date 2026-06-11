@@ -46,7 +46,7 @@ export default function LoginPage() {
         <h1 className="font-display text-3xl font-bold tracking-wide">
           BOLÃO <span className="text-neon">DA COPA 2026</span>
         </h1>
-        <p className="mt-1 text-sm text-mute">Bolão Lumina × OKT</p>
+        <p className="mt-1 text-sm text-mute">Palpite nos jogos e dispute o pote 🏆</p>
       </div>
 
       <div className="w-full max-w-sm rounded-2xl border border-line bg-panel p-6">
@@ -64,13 +64,13 @@ export default function LoginPage() {
                 autoFocus
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@luminacm.com"
+                placeholder="voce@empresa.com"
                 className="h-11 flex-1 bg-transparent text-sm outline-none placeholder:text-mute"
               />
             </div>
             <p className="text-xs text-mute">
-              Enviaremos um código de 6 dígitos por e-mail. Apenas endereços
-              @luminacm.com e @oktcapital.com podem entrar.
+              Enviaremos um código de 6 dígitos por e-mail. Apenas e-mails de
+              domínios autorizados podem entrar.
             </p>
             {error && <p className="text-sm text-danger">{error}</p>}
             <button

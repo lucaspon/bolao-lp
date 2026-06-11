@@ -1,9 +1,10 @@
 # Bolão da Copa 2026
 
-Internal World Cup 2026 prediction pool (a Brazilian *bolão*) for Lumina and OKT.
-Log in with your work email, predict the score of every match, optionally put real
-money in via PIX, and climb the leaderboard. The whole thing is one Next.js app on
-a single Vercel deploy.
+A self-hostable World Cup 2026 prediction pool (a Brazilian *bolão*) for your team
+or group of friends. Log in with email, predict the score of every match, optionally
+put real money in via PIX, and climb the leaderboard. The whole thing is one Next.js
+app on a single Vercel deploy. **You choose who can join** by setting the allowed
+email domains (`ALLOWED_DOMAINS`).
 
 - **+3** points for an exact score, **+1** for the correct result (right winner, or a draw you called)
 - Each match's points are **weighted by stage** (a group game ×1 … the final ×13) and **Brazil matches count double**
@@ -160,3 +161,9 @@ inspect/edit with `doppler secrets` / `doppler secrets set`.
   +1 "result" point as-is; football-data exposes a `score.winner` field we could use
   to fix that.
 - Possible next steps: kickoff reminders and a session-revocation table.
+
+## License
+
+[PolyForm Noncommercial License 1.0.0](./LICENSE) — free to use, modify and share
+for any **noncommercial** purpose. Selling it or running it as a paid/commercial
+service is not permitted.
