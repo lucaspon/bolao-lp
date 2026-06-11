@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "./db/client";
 import { matches, type Stage, type MatchStatus } from "./db/schema";
-import { rescoreMatch } from "./db/queries";
+import { rescoreMatch, hasUnscoredBets } from "./db/queries";
 import { matchPointsMultiplier } from "./match";
 
 const API_BASE = "https://api.football-data.org/v4";
@@ -67,8 +67,10 @@ export async function syncMatches(): Promise<SyncResult> {
     const hasScore = home !== null && away !== null;
     const homeScore = status === "scheduled" || !hasScore ? null : home;
     const awayScore = status === "scheduled" || !hasScore ? null : away;
-    const homeTeam = apiMatch.homeTeam?.tla ?? null;
-    const awayTeam = apiMatch.awayTeam?.tla ?? null;
+    // `?? null` isn't enough: football-data can return an empty-string tla, which
+    // would (being non-null) clobber a known team. Treat blank as null.
+    const homeTeam = apiMatch.homeTeam?.tla?.trim() || null;
+    const awayTeam = apiMatch.awayTeam?.tla?.trim() || null;
 
     const values = {
       extId: `wc-${apiMatch.id}`,
@@ -98,8 +100,8 @@ export async function syncMatches(): Promise<SyncResult> {
         set: {
           stage: values.stage,
           groupLabel: sql`coalesce(excluded.group_label, ${matches.groupLabel})`,
-          homeTeam: sql`coalesce(excluded.home_team, ${matches.homeTeam})`,
-          awayTeam: sql`coalesce(excluded.away_team, ${matches.awayTeam})`,
+          homeTeam: sql`coalesce(nullif(excluded.home_team, ''), ${matches.homeTeam})`,
+          awayTeam: sql`coalesce(nullif(excluded.away_team, ''), ${matches.awayTeam})`,
           kickoffAt: values.kickoffAt,
           status: sql`case
             when ${matches.status} = 'finished' then ${matches.status}
@@ -110,14 +112,24 @@ export async function syncMatches(): Promise<SyncResult> {
           pointsMultiplier: values.pointsMultiplier,
         },
       })
-      .returning({ id: matches.id, pointsMultiplier: matches.pointsMultiplier });
+      .returning({
+        id: matches.id,
+        status: matches.status,
+        homeScore: matches.homeScore,
+        awayScore: matches.awayScore,
+      });
 
     result.total += 1;
-    if (status === "live") result.live += 1;
-    if (status === "finished") {
+    if (saved.status === "live") result.live += 1;
+    // Rescore from the STORED score/status (post-merge), not this feed response —
+    // a finished match's score may have come from the live overlay while
+    // football-data's "finished" payload still has a null score. Without this,
+    // bets stay unscored and the official leaderboard reads 0.
+    if (saved.status === "finished" && saved.homeScore !== null && saved.awayScore !== null) {
       result.finished += 1;
-      if (homeScore !== null && awayScore !== null) {
-        await rescoreMatch(saved.id, homeScore, awayScore);
+      const freshScore = status === "finished" && homeScore !== null && awayScore !== null;
+      if (freshScore || (await hasUnscoredBets(saved.id))) {
+        await rescoreMatch(saved.id, saved.homeScore, saved.awayScore);
         result.rescored += 1;
       }
     }

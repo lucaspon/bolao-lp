@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ne, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, ne, isNull, sql, type SQL } from "drizzle-orm";
 import { db } from "./client";
 import { users, matches, bets, payments, type User, type Match, type Payment } from "./schema";
 import { isAdminEmail, usernameFromEmail } from "../auth/policy";
@@ -158,6 +158,16 @@ export async function applyLiveScore(
     .update(matches)
     .set({ status: "live", homeScore, awayScore })
     .where(and(eq(matches.id, matchId), ne(matches.status, "finished")));
+}
+
+// True if any bet on a match still lacks points — used by the sync to decide
+// whether a finished match needs (re)scoring.
+export async function hasUnscoredBets(matchId: number): Promise<boolean> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)`.mapWith(Number) })
+    .from(bets)
+    .where(and(eq(bets.matchId, matchId), isNull(bets.points)));
+  return row.n > 0;
 }
 
 // Recomputes points for every bet on a match. Used by the admin result entry
