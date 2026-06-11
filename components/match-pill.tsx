@@ -46,6 +46,7 @@ function clampScore(prev: string, delta: number): string {
   return String(Math.max(0, Math.min(30, base + delta)));
 }
 
+// Both sides take flex-1 so the score block is always exactly centred.
 function Side_({
   code,
   placeholder,
@@ -59,13 +60,16 @@ function Side_({
   return (
     <HoverTip
       label={team?.name}
-      className={cn("flex min-w-0 items-center gap-1", reverse && "flex-row-reverse")}
+      className={cn(
+        "flex flex-1 min-w-0 items-center gap-1",
+        reverse ? "flex-row-reverse" : "",
+      )}
     >
-      <span className="text-sm leading-none">{team ? team.flag : "⚽"}</span>
+      <span className="shrink-0 text-sm leading-none">{team ? team.flag : "⚽"}</span>
       <span
         className={cn(
-          "font-display font-semibold",
-          team ? "text-ink" : "truncate text-mute",
+          "truncate font-display text-[11px] font-semibold",
+          team ? "text-ink" : "text-mute",
         )}
       >
         {team ? team.code : shortPlaceholder(placeholder)}
@@ -78,7 +82,7 @@ function ScoreBox({ children, live }: { children: React.ReactNode; live?: boolea
   return (
     <span
       className={cn(
-        "tabular inline-flex h-5 w-5 items-center justify-center font-display text-sm font-bold",
+        "tabular inline-flex h-5 w-5 shrink-0 items-center justify-center font-display text-sm font-bold",
         live ? "text-gold" : "text-ink",
       )}
     >
@@ -118,7 +122,7 @@ export function MatchPill({
     if (h === "" || a === "") return;
     const hn = Number(h);
     const an = Number(a);
-    if (hn === bet?.homePred && an === bet?.awayPred) return; // unchanged
+    if (hn === bet?.homePred && an === bet?.awayPred) return;
     setSaveStatus("saving");
     startTransition(async () => {
       const result = await placeBetAction(match.id, hn, an);
@@ -165,8 +169,6 @@ export function MatchPill({
       ? scoreBet(bet.homePred, bet.awayPred, match.homeScore, match.awayScore)
       : null;
 
-  // Settled games are colored by the result: green for exact (+3), yellow for the
-  // right result (+1), red for a miss (+0). (Live is handled by `live-border`.)
   const borderClass = finished
     ? base === 3
       ? "border-win/70"
@@ -231,7 +233,7 @@ export function MatchPill({
       tabIndex={-1}
       onMouseDown={() => kb.select?.(match.id)}
       className={cn(
-        "rounded-lg px-2 py-1.5 outline-none transition",
+        "flex flex-col gap-1.5 rounded-lg px-2 py-2 outline-none transition",
         live
           ? "live-border"
           : isBrazil
@@ -245,14 +247,16 @@ export function MatchPill({
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-1 text-[11px]">
+      {/* Main row: home side takes flex-1, score is shrink-0 in the middle,
+          away side takes flex-1 → score is always exactly centred. */}
+      <div className="flex items-center gap-1">
         <Side_ code={match.homeTeam} placeholder={match.homePlaceholder} />
 
         <span className="flex shrink-0 items-center">
           {editable ? scoreInput("home", home, setHome) : (
             <ScoreBox live={live}>{showActual ? match.homeScore : (bet?.homePred ?? "–")}</ScoreBox>
           )}
-          <span className="px-0.5 text-mute">×</span>
+          <span className="px-0.5 text-[10px] text-mute">–</span>
           {editable ? scoreInput("away", away, setAway) : (
             <ScoreBox live={live}>{showActual ? match.awayScore : (bet?.awayPred ?? "–")}</ScoreBox>
           )}
@@ -261,21 +265,23 @@ export function MatchPill({
         <Side_ code={match.awayTeam} placeholder={match.awayPlaceholder} reverse />
       </div>
 
-      {/* Show the user's bet below the live/settled score. Hidden for open
-          matches so the pill stays compact and content is vertically centred. */}
+      {/* Bet vs actual — only shown for live/finished matches with a bet. */}
       {showActual && bet && (
-        <div className="mt-0.5 text-center text-[9px] leading-none text-mute">
+        <div className="text-center text-[9px] leading-none text-mute">
           seu palpite {bet.homePred}–{bet.awayPred}
         </div>
       )}
 
+      {/* Footer: date · status */}
       <div
         className={cn(
-          "mt-1 truncate text-center text-[10px]",
+          "truncate text-center text-[10px]",
           live ? "font-semibold text-gold" : "text-mute",
         )}
       >
-        {live && <span className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-gold align-middle" />}
+        {live && (
+          <span className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-gold align-middle" />
+        )}
         {match.dateLabel} · {statusLabel}
       </div>
     </div>
