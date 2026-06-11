@@ -233,7 +233,7 @@ export function MatchPill({
       tabIndex={-1}
       onMouseDown={() => kb.select?.(match.id)}
       className={cn(
-        "flex flex-col gap-1.5 rounded-lg px-2 py-2 outline-none transition",
+        "flex flex-col rounded-lg px-2 py-2 outline-none transition",
         live
           ? "live-border"
           : isBrazil
@@ -247,42 +247,51 @@ export function MatchPill({
         className,
       )}
     >
-      {/* Main row: home side takes flex-1, score is shrink-0 in the middle,
-          away side takes flex-1 → score is always exactly centred. */}
-      <div className="flex items-center gap-1">
-        <Side_ code={match.homeTeam} placeholder={match.homePlaceholder} />
+      {/* Three rows centred as a block. `my-auto` distributes any leftover
+          vertical space evenly above and below when pills sit in a taller grid
+          cell. `invisible` (not hidden) on "seu palpite" reserves its space so
+          every pill is the same height regardless of match state. */}
+      <div className="my-auto flex flex-col items-center gap-1">
+        {/* Score row — flex-1 sides guarantee the score is exactly centred */}
+        <div className="flex w-full items-center gap-1">
+          <Side_ code={match.homeTeam} placeholder={match.homePlaceholder} />
 
-        <span className="flex shrink-0 items-center">
-          {editable ? scoreInput("home", home, setHome) : (
-            <ScoreBox live={live}>{showActual ? match.homeScore : (bet?.homePred ?? "–")}</ScoreBox>
-          )}
-          <span className="px-0.5 text-[10px] text-mute">–</span>
-          {editable ? scoreInput("away", away, setAway) : (
-            <ScoreBox live={live}>{showActual ? match.awayScore : (bet?.awayPred ?? "–")}</ScoreBox>
-          )}
-        </span>
+          <span className="flex shrink-0 items-center">
+            {editable ? scoreInput("home", home, setHome) : (
+              <ScoreBox live={live}>{showActual ? match.homeScore : (bet?.homePred ?? "–")}</ScoreBox>
+            )}
+            <span className="px-0.5 text-[10px] text-mute">–</span>
+            {editable ? scoreInput("away", away, setAway) : (
+              <ScoreBox live={live}>{showActual ? match.awayScore : (bet?.awayPred ?? "–")}</ScoreBox>
+            )}
+          </span>
 
-        <Side_ code={match.awayTeam} placeholder={match.awayPlaceholder} reverse />
-      </div>
-
-      {/* Bet vs actual — only shown for live/finished matches with a bet. */}
-      {showActual && bet && (
-        <div className="text-center text-[9px] leading-none text-mute">
-          seu palpite {bet.homePred}–{bet.awayPred}
+          <Side_ code={match.awayTeam} placeholder={match.awayPlaceholder} reverse />
         </div>
-      )}
 
-      {/* Footer: date · status */}
-      <div
-        className={cn(
-          "truncate text-center text-[10px]",
-          live ? "font-semibold text-gold" : "text-mute",
-        )}
-      >
-        {live && (
-          <span className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-gold align-middle" />
-        )}
-        {match.dateLabel} · {statusLabel}
+        {/* Seu palpite — invisible on pending/open matches to keep pill height
+            consistent; visible once the match is live or finished. */}
+        <div
+          className={cn(
+            "text-center text-[9px] leading-none text-mute",
+            !(showActual && bet) && "invisible",
+          )}
+        >
+          {showActual && bet ? `seu palpite ${bet.homePred}–${bet.awayPred}` : "·"}
+        </div>
+
+        {/* Date + status */}
+        <div
+          className={cn(
+            "truncate text-center text-[10px]",
+            live ? "font-semibold text-gold" : "text-mute",
+          )}
+        >
+          {live && (
+            <span className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-gold align-middle" />
+          )}
+          {match.dateLabel} · {statusLabel}
+        </div>
       </div>
     </div>
   );
