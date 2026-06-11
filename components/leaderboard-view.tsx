@@ -81,6 +81,12 @@ export function LeaderboardView({
   );
   const top = sorted.filter((row) => value(row) > 0).slice(0, 3);
 
+  // Competition rank: 1 + how many score strictly higher. A player qualifies (and
+  // goes gold) when their rank is ≤ 3 — so literal ties at the boundary widen the
+  // golden pool exactly like the payout does (1,2,3,3 → four winners).
+  const rankOf = (row: LeaderRow) => 1 + sorted.filter((r) => value(r) > value(row)).length;
+  const qualifies = (row: LeaderRow) => value(row) > 0 && rankOf(row) <= 3;
+
   const payouts = computePayouts(rows, potCents, metric);
 
   const maxPoints = concluded * 3;
@@ -158,13 +164,14 @@ export function LeaderboardView({
           <tbody>
             {sorted.map((row, index) => {
               const isMe = row.userId === meId;
-              const isTop3 = index < 3 && value(row) > 0;
+              const gold = qualifies(row);
+              const rank = rankOf(row);
               return (
                 <tr
                   key={row.userId}
                   className={cn(
                     "border-t border-line",
-                    isTop3
+                    gold
                       ? "bg-gold/10"
                       : isMe
                         ? "bg-neon/10"
@@ -174,14 +181,14 @@ export function LeaderboardView({
                   )}
                 >
                   <td className="tabular px-3 py-2.5 text-center">
-                    {isTop3 ? (
-                      <span className="text-base">{MEDALS[index]}</span>
+                    {gold ? (
+                      <span className="text-base">{MEDALS[rank - 1]}</span>
                     ) : (
                       <span className="text-mute">{index + 1}</span>
                     )}
                   </td>
                   <td className="px-3 py-2.5 font-medium">
-                    <span className={isMe ? "text-neon" : isTop3 ? "text-gold" : "text-ink"}>
+                    <span className={isMe ? "text-neon" : gold ? "text-gold" : "text-ink"}>
                       {row.username}
                     </span>
                     {isMe && <span className="ml-1.5 text-xs text-mute">(você)</span>}
@@ -191,7 +198,7 @@ export function LeaderboardView({
                   <td
                     className={cn(
                       "tabular px-3 py-2.5 text-right font-display text-lg font-bold",
-                      isTop3 ? "text-gold" : view === "official" ? "text-ink" : "text-mute",
+                      gold ? "text-gold" : view === "official" ? "text-ink" : "text-mute",
                     )}
                   >
                     {row.points}

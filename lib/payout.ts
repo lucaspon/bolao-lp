@@ -25,9 +25,14 @@ export function computePayouts(
       b.stakeCents - a.stakeCents ||
       a.username.localeCompare(b.username),
   );
-  const top3 = ranked.slice(0, 3);
 
-  const weights = top3.map((row) => ({ userId: row.userId, weight: weightOf(row) }));
+  // Top 3 by score, but literal ties at the 3rd-place score widen the pool:
+  // anyone at or above the 3rd-highest score qualifies (so 1,2,3,3 → 4 winners).
+  const scored = ranked.filter((row) => totalPoints(row) > 0);
+  const cutoff = scored.length > 0 ? totalPoints(scored[Math.min(3, scored.length) - 1]) : 0;
+  const qualifiers = scored.filter((row) => totalPoints(row) >= cutoff);
+
+  const weights = qualifiers.map((row) => ({ userId: row.userId, weight: weightOf(row) }));
   const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0);
 
   const payouts = new Map<number, number>();

@@ -185,7 +185,7 @@ export function MatchPill({
 
   let statusLabel: string;
   if (live) {
-    statusLabel = bet ? `AO VIVO · palpite ${bet.homePred}–${bet.awayPred}` : "AO VIVO";
+    statusLabel = "AO VIVO";
   } else if (finished) {
     statusLabel = bet?.points != null ? `FIM · +${bet.points}p` : "FIM";
   } else if (!teamsKnown) {
@@ -246,13 +246,20 @@ export function MatchPill({
       <div className="flex items-center justify-between gap-1 text-[11px]">
         <Side_ code={match.homeTeam} placeholder={match.homePlaceholder} />
 
-        <span className="flex shrink-0 items-center">
-          {editable ? scoreInput("home", home, setHome) : (
-            <ScoreBox live={live}>{showActual ? match.homeScore : (bet?.homePred ?? "–")}</ScoreBox>
-          )}
-          <span className="px-0.5 text-mute">×</span>
-          {editable ? scoreInput("away", away, setAway) : (
-            <ScoreBox live={live}>{showActual ? match.awayScore : (bet?.awayPred ?? "–")}</ScoreBox>
+        <span className="flex shrink-0 flex-col items-center">
+          <span className="flex items-center">
+            {editable ? scoreInput("home", home, setHome) : (
+              <ScoreBox live={live}>{showActual ? match.homeScore : (bet?.homePred ?? "–")}</ScoreBox>
+            )}
+            <span className="px-0.5 text-mute">×</span>
+            {editable ? scoreInput("away", away, setAway) : (
+              <ScoreBox live={live}>{showActual ? match.awayScore : (bet?.awayPred ?? "–")}</ScoreBox>
+            )}
+          </span>
+          {showActual && bet && (
+            <span className="mt-0.5 text-[9px] leading-none text-mute">
+              seu {bet.homePred}–{bet.awayPred}
+            </span>
           )}
         </span>
 
