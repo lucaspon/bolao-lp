@@ -105,8 +105,29 @@ body {
   }
 }
 
+/* Animated yellow border for live (in-play) matches. */
+.live-border {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--panel), var(--panel)) padding-box,
+    linear-gradient(90deg, var(--gold), rgba(255, 210, 74, 0.25), var(--gold)) border-box;
+  background-size:
+    100% 100%,
+    200% 100%;
+  animation: live-flow 2.2s linear infinite;
+}
+
+@keyframes live-flow {
+  to {
+    background-position:
+      0 0,
+      200% 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .brazil-border {
+  .brazil-border,
+  .live-border {
     animation: none;
   }
 }

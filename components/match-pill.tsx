@@ -79,7 +79,7 @@ function ScoreBox({ children, live }: { children: React.ReactNode; live?: boolea
     <span
       className={cn(
         "tabular inline-flex h-5 w-5 items-center justify-center font-display text-sm font-bold",
-        live ? "text-danger" : "text-ink",
+        live ? "text-gold" : "text-ink",
       )}
     >
       {children}
@@ -165,23 +165,23 @@ export function MatchPill({
       ? scoreBet(bet.homePred, bet.awayPred, match.homeScore, match.awayScore)
       : null;
 
-  const borderClass = live
-    ? "border-danger/70"
-    : finished
-      ? base === 3
-        ? "border-gold/50"
-        : base === 1
-          ? "border-neon/50"
-          : "border-line"
-      : !teamsKnown
-        ? "border-line/50"
-        : locked
-          ? "border-line"
-          : closingSoon
-            ? "border-gold/70"
-            : bet
-              ? "border-neon/40"
-              : "border-line";
+  // Settled games are colored by the result: green for exact (+3), yellow for the
+  // right result (+1), red for a miss (+0). (Live is handled by `live-border`.)
+  const borderClass = finished
+    ? base === 3
+      ? "border-neon/60"
+      : base === 1
+        ? "border-gold/60"
+        : "border-danger/60"
+    : !teamsKnown
+      ? "border-line/50"
+      : locked
+        ? "border-line"
+        : closingSoon
+          ? "border-gold/70"
+          : bet
+            ? "border-neon/40"
+            : "border-line";
 
   let statusLabel: string;
   if (live) {
@@ -232,9 +232,11 @@ export function MatchPill({
       onMouseDown={() => kb.select?.(match.id)}
       className={cn(
         "rounded-lg px-2 py-1.5 outline-none transition",
-        isBrazil
-          ? "brazil-border"
-          : cn("border bg-panel", emphasis && !live && !finished ? "border-gold/60" : borderClass),
+        live
+          ? "live-border"
+          : isBrazil
+            ? "brazil-border"
+            : cn("border bg-panel", emphasis && !finished ? "border-gold/60" : borderClass),
         kb.editing
           ? "ring-2 ring-neon"
           : kb.selected
@@ -256,11 +258,15 @@ export function MatchPill({
               <ScoreBox live={live}>{showActual ? match.awayScore : (bet?.awayPred ?? "–")}</ScoreBox>
             )}
           </span>
-          {showActual && bet && (
-            <span className="mt-0.5 text-[9px] leading-none text-mute">
-              seu {bet.homePred}–{bet.awayPred}
-            </span>
-          )}
+          {/* Always rendered (invisible when N/A) so every pill is the same height. */}
+          <span
+            className={cn(
+              "mt-0.5 text-[9px] leading-none text-mute",
+              !(showActual && bet) && "invisible",
+            )}
+          >
+            {showActual && bet ? `seu ${bet.homePred}–${bet.awayPred}` : "seu –"}
+          </span>
         </span>
 
         <Side_ code={match.awayTeam} placeholder={match.awayPlaceholder} reverse />
@@ -269,10 +275,10 @@ export function MatchPill({
       <div
         className={cn(
           "mt-1 truncate text-center text-[10px]",
-          live ? "font-semibold text-danger" : "text-mute",
+          live ? "font-semibold text-gold" : "text-mute",
         )}
       >
-        {live && <span className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-danger align-middle" />}
+        {live && <span className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-gold align-middle" />}
         {match.dateLabel} · {statusLabel}
       </div>
     </div>

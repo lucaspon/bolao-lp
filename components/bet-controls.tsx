@@ -29,20 +29,20 @@ const MAX_SCORE = 30;
 function PointsBadge({ base, points }: { base: number; points: number }) {
   if (base === 3) {
     return (
-      <span className="rounded-md bg-gold/15 px-2 py-0.5 text-xs font-bold tracking-wide text-gold">
+      <span className="rounded-md bg-neon/15 px-2 py-0.5 text-xs font-bold tracking-wide text-neon">
         CRAVOU · +{points}
       </span>
     );
   }
   if (base === 1) {
     return (
-      <span className="rounded-md bg-neon/15 px-2 py-0.5 text-xs font-bold text-neon">
+      <span className="rounded-md bg-gold/15 px-2 py-0.5 text-xs font-bold text-gold">
         RESULTADO · +{points}
       </span>
     );
   }
   return (
-    <span className="rounded-md bg-panel2 px-2 py-0.5 text-xs font-semibold text-mute">
+    <span className="rounded-md bg-danger/15 px-2 py-0.5 text-xs font-semibold text-danger">
       +0
     </span>
   );
@@ -212,8 +212,8 @@ function Footer({
   if (live) {
     return (
       <div className="flex items-center justify-between border-t border-line pt-2.5 text-sm">
-        <span className="flex items-center gap-1.5 font-semibold text-danger">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-danger" /> AO VIVO
+        <span className="flex items-center gap-1.5 font-semibold text-gold">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold" /> AO VIVO
         </span>
         <span className="text-mute">
           {bet ? `Seu palpite: ${bet.homePred}–${bet.awayPred}` : "Sem palpite"}

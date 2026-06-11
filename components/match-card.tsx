@@ -12,35 +12,32 @@ export function MatchCard({ match }: { match: MatchWithBet }) {
   const live = match.status === "live";
   const teamsKnown = !!match.homeTeam && !!match.awayTeam;
 
-  // Border mirrors the match-pill: live = red, finished = by points, a still-open
-  // match within 3h of kickoff = gold warning. (Closing-soon is evaluated at
-  // request time — the page is dynamic, so it's accurate on load.)
+  // Mirrors the match-pill: live = animated yellow border; settled = green (+3),
+  // yellow (+1), red (+0); a still-open match within 3h of kickoff = gold warning.
+  // (Closing-soon is evaluated at request time — the page is dynamic.)
   const base =
     finished && match.bet && match.homeScore !== null && match.awayScore !== null
       ? scoreBet(match.bet.homePred, match.bet.awayPred, match.homeScore, match.awayScore)
       : null;
   const closingSoon =
     match.status === "scheduled" && teamsKnown && isClosingSoon(kickoffMs);
-  const border = live
-    ? "border-danger/70"
-    : finished
-      ? base === 3
-        ? "border-gold/60"
-        : base === 1
-          ? "border-neon/60"
-          : "border-line"
-      : closingSoon
-        ? "border-gold/70"
-        : "border-line";
+  const stateClass = live
+    ? "live-border"
+    : cn(
+        "border bg-panel",
+        finished
+          ? base === 3
+            ? "border-neon/60"
+            : base === 1
+              ? "border-gold/60"
+              : "border-danger/60"
+          : closingSoon
+            ? "border-gold/70"
+            : "border-line",
+      );
 
   return (
-    <article
-      className={cn(
-        "rounded-2xl border bg-panel p-4 transition",
-        border,
-        live && "bg-danger/5",
-      )}
-    >
+    <article className={cn("rounded-2xl p-4 transition", stateClass)}>
       <header className="mb-3 flex items-center justify-between gap-2 text-xs text-mute">
         <span className="flex min-w-0 items-center gap-2">
           {match.groupLabel && (
@@ -52,8 +49,8 @@ export function MatchCard({ match }: { match: MatchWithBet }) {
         </span>
         <span className="shrink-0">
           {live ? (
-            <span className="flex items-center gap-1 rounded bg-danger/15 px-1.5 py-0.5 font-bold text-danger">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-danger" /> AO VIVO
+            <span className="flex items-center gap-1 rounded bg-gold/15 px-1.5 py-0.5 font-bold text-gold">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold" /> AO VIVO
             </span>
           ) : finished ? (
             <span className="rounded bg-neon/15 px-1.5 py-0.5 font-bold text-neon">FIM</span>
