@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useNowFast } from "@/components/use-now";
 import { formatCountdownLong, formatKickoff } from "@/lib/format";
 
 // Warns how long is left to lock in group-stage predictions. The server picks
@@ -13,15 +13,9 @@ export function BetDeadlineCallout({
   deadlineMs: number;
   variant: "upcoming" | "closing";
 }) {
-  // Own 1s clock (not the shared 30s useNow) so the seconds tick. Starts null on
-  // both server and first client render to avoid a hydration mismatch.
-  const [now, setNow] = useState<number | null>(null);
-  useEffect(() => {
-    setNow(Date.now());
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
+  // 1s clock (not the shared 30s useNow) so the seconds tick. Null on the server
+  // and first client render, so there's no hydration mismatch.
+  const now = useNowFast();
   if (now !== null && now >= deadlineMs) return null;
 
   // Before mount render an absolute time (deterministic), then swap to the live

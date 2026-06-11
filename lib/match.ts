@@ -50,6 +50,14 @@ export function isLockedAt(kickoffMs: number, now: number = Date.now()): boolean
   return now >= kickoffMs - BET_LOCK_MS;
 }
 
+// The palpite window closes 1h before kickoff; we warn for the 2h before that.
+export const BET_CLOSING_SOON_MS = 3 * 60 * 60 * 1000;
+
+// True while a still-open match is within 3h of kickoff (but not yet locked).
+export function isClosingSoon(kickoffMs: number, now: number = Date.now()): boolean {
+  return !isLockedAt(kickoffMs, now) && now >= kickoffMs - BET_CLOSING_SOON_MS;
+}
+
 export function isFinished(match: Pick<Match, "status">): boolean {
   return match.status === "finished";
 }

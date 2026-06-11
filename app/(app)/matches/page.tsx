@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth/session";
 import { getMatchesForUser, type MatchWithBet } from "@/lib/db/queries";
-import { canBet, isLockedAt, BET_LOCK_MS } from "@/lib/match";
+import { canBet, isLockedAt, isClosingSoon, BET_LOCK_MS } from "@/lib/match";
 import { BetDeadlineCallout } from "@/components/bet-deadline-callout";
 import { GROUP_LABELS } from "@/lib/teams";
 import { BRACKET, matchNoForApiId, slotShortLabel } from "@/lib/bracket";
@@ -18,6 +18,7 @@ function toPill(match: MatchWithBet): PillMatch {
     id: match.id,
     kickoffMs,
     initialLocked: isLockedAt(kickoffMs),
+    initialClosingSoon: isClosingSoon(kickoffMs),
     status: match.status,
     homeTeam: match.homeTeam,
     awayTeam: match.awayTeam,

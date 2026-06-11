@@ -41,3 +41,38 @@ export function useNow(): number | null {
   const now = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   return now === 0 ? null : now;
 }
+
+// A separate 1-second clock for things that show seconds (the bet-deadline
+// countdown). Kept apart from useNow so the 30s consumers (every match pill)
+// don't re-render every second.
+let fastCurrent = 0;
+const fastListeners = new Set<() => void>();
+let fastTimer: ReturnType<typeof setInterval> | null = null;
+
+function subscribeFast(callback: () => void) {
+  fastListeners.add(callback);
+  if (fastTimer === null) {
+    fastCurrent = Date.now();
+    fastTimer = setInterval(() => {
+      fastCurrent = Date.now();
+      fastListeners.forEach((listener) => listener());
+    }, 1_000);
+  }
+  return () => {
+    fastListeners.delete(callback);
+    if (fastListeners.size === 0 && fastTimer !== null) {
+      clearInterval(fastTimer);
+      fastTimer = null;
+    }
+  };
+}
+
+function getFastSnapshot(): number {
+  if (fastCurrent === 0) fastCurrent = Date.now();
+  return fastCurrent;
+}
+
+export function useNowFast(): number | null {
+  const now = useSyncExternalStore(subscribeFast, getFastSnapshot, getServerSnapshot);
+  return now === 0 ? null : now;
+}

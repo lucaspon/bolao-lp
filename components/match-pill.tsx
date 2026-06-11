@@ -6,7 +6,7 @@ import { HoverTip } from "@/components/hover-tip";
 import { useNow } from "@/components/use-now";
 import { usePillKeyboard, type Side } from "@/components/keyboard-bet";
 import { placeBetAction, clearBetAction } from "@/app/actions/bets";
-import { isLockedAt } from "@/lib/match";
+import { isLockedAt, isClosingSoon } from "@/lib/match";
 import { scoreBet } from "@/lib/scoring";
 import type { MatchStatus } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ export type PillMatch = {
   id: number;
   kickoffMs: number;
   initialLocked: boolean;
+  initialClosingSoon: boolean;
   status: MatchStatus;
   homeTeam: string | null;
   awayTeam: string | null;
@@ -105,6 +106,8 @@ export function MatchPill({
   const now = useNow();
   const locked = now === null ? match.initialLocked : isLockedAt(match.kickoffMs, now);
   const editable = teamsKnown && match.status === "scheduled" && !locked;
+  const closingSoon =
+    editable && (now === null ? match.initialClosingSoon : isClosingSoon(match.kickoffMs, now));
 
   const [home, setHome] = useState(bet?.homePred?.toString() ?? "");
   const [away, setAway] = useState(bet?.awayPred?.toString() ?? "");
@@ -174,9 +177,11 @@ export function MatchPill({
         ? "border-line/50"
         : locked
           ? "border-line"
-          : bet
-            ? "border-neon/40"
-            : "border-line";
+          : closingSoon
+            ? "border-gold/70"
+            : bet
+              ? "border-neon/40"
+              : "border-line";
 
   let statusLabel: string;
   if (live) {
@@ -193,6 +198,8 @@ export function MatchPill({
     statusLabel = "salvo ✓";
   } else if (saveStatus === "error") {
     statusLabel = "erro";
+  } else if (closingSoon) {
+    statusLabel = bet ? "⏳ fecha logo" : "⏳ aposte já";
   } else {
     statusLabel = bet ? "salvo" : "aberto";
   }
