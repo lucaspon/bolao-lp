@@ -77,7 +77,11 @@ export function LeaderboardView({
   const metric = view === "live" ? "livePoints" : "points";
   const value = (row: LeaderRow) => row[metric];
   const sorted = [...rows].sort(
-    (a, b) => value(b) - value(a) || b.exact - a.exact || a.username.localeCompare(b.username),
+    (a, b) =>
+      value(b) - value(a) ||
+      b.stakeCents - a.stakeCents || // ties broken by total bet, highest first
+      b.exact - a.exact ||
+      a.username.localeCompare(b.username),
   );
   const top = sorted.filter((row) => value(row) > 0).slice(0, 3);
 
