@@ -72,7 +72,7 @@ export function LeaderboardView({
   potCents: number;
 }) {
   const hasLive = liveCount > 0;
-  const [view, setView] = useState<View>(hasLive ? "live" : "official");
+  const [view, setView] = useState<View>("live"); // Prévia is the default view
 
   const metric = view === "live" ? "livePoints" : "points";
   const value = (row: LeaderRow) => row[metric];
