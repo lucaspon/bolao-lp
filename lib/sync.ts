@@ -5,11 +5,19 @@ import { rescoreMatch, hasUnscoredBets } from "./db/queries";
 import { matchPointsMultiplier } from "./match";
 import { TEAMS } from "./teams";
 
-// Reverse map: lowercased team name → TLA code. Used as a fallback when the
-// football-data API returns a match with an empty tla but a valid name field
-// (Curaçao is a known offender — it gets tla="" intermittently).
+// Lower-case + strip diacritics so "Curaçao" and "Curacao" compare equal.
+function normalizeName(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+// Reverse map: normalized team name → our canonical code. Used to recover the
+// right code when the feed sends a tla we don't recognise but a name we do.
 const TEAM_NAME_TO_CODE: Record<string, string> = Object.fromEntries(
-  Object.values(TEAMS).map((t) => [t.name.toLowerCase(), t.code]),
+  Object.values(TEAMS).map((t) => [normalizeName(t.name), t.code]),
 );
 
 const API_BASE = "https://api.football-data.org/v4";
@@ -33,12 +41,19 @@ function mapStatus(apiStatus: string): MatchStatus {
 
 type ApiTeam = { tla: string | null; name: string | null };
 
+// Resolve the API's team to one of OUR canonical codes (the keys of TEAMS).
+// Priority: a tla we recognise → name lookup → the raw tla as a last resort →
+// null. The name fallback fixes the feed sending a tla we don't know (e.g.
+// "CUR" for Curaçao, whose canonical code is "CUW") alongside a name we do.
 function resolveTeamCode(apiTeam: ApiTeam | null | undefined): string | null {
   const tla = apiTeam?.tla?.trim() || null;
-  if (tla) return tla;
-  const name = apiTeam?.name?.trim().toLowerCase();
-  if (name) return TEAM_NAME_TO_CODE[name] ?? null;
-  return null;
+  if (tla && TEAMS[tla]) return tla;
+  const name = apiTeam?.name?.trim();
+  if (name) {
+    const byName = TEAM_NAME_TO_CODE[normalizeName(name)];
+    if (byName) return byName;
+  }
+  return tla; // unknown code but no name match — keep it rather than nulling
 }
 type ApiMatch = {
   id: number;
