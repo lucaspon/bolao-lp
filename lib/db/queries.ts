@@ -1,6 +1,15 @@
-import { and, asc, desc, eq, ne, isNull, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, ne, isNull, isNotNull, inArray, sql, type SQL } from "drizzle-orm";
 import { db } from "./client";
-import { users, matches, bets, payments, type User, type Match, type Payment } from "./schema";
+import {
+  users,
+  matches,
+  bets,
+  payments,
+  type User,
+  type Match,
+  type Payment,
+  type Stage,
+} from "./schema";
 import { isAdminEmail, usernameFromEmail } from "../auth/policy";
 import { scoreBet } from "../scoring";
 import type { StakingBounds } from "../staking";
@@ -129,6 +138,91 @@ export async function getLeaderboard(): Promise<LeaderRow[]> {
       sql`count(*) filter (where ${bets.points} = 3 * ${matches.pointsMultiplier}) desc`,
       asc(users.username),
     );
+}
+
+// ---- Recent results feed ----------------------------------------------------
+
+export type ResultBettor = { userId: number; username: string };
+
+export type ResultFeedItem = {
+  matchId: number;
+  stage: Stage;
+  groupLabel: string | null;
+  homeTeam: string | null;
+  awayTeam: string | null;
+  homeScore: number;
+  awayScore: number;
+  kickoffMs: number;
+  multiplier: number;
+  exact: ResultBettor[]; // cravaram o placar
+  correct: ResultBettor[]; // acertaram só o resultado
+  totalPicks: number;
+};
+
+// The most recently played matches, each with who nailed the exact score and who
+// just got the result right. Powers the leaderboard's results feed.
+export async function getRecentResults(limit = 10): Promise<ResultFeedItem[]> {
+  const recent = await db
+    .select()
+    .from(matches)
+    .where(
+      and(
+        eq(matches.status, "finished"),
+        isNotNull(matches.homeScore),
+        isNotNull(matches.awayScore),
+      ),
+    )
+    .orderBy(desc(matches.kickoffAt))
+    .limit(limit);
+  if (recent.length === 0) return [];
+
+  const ids = recent.map((m) => m.id);
+  const picks = await db
+    .select({
+      matchId: bets.matchId,
+      userId: users.id,
+      username: users.username,
+      homePred: bets.homePred,
+      awayPred: bets.awayPred,
+    })
+    .from(bets)
+    .innerJoin(users, eq(users.id, bets.userId))
+    .where(inArray(bets.matchId, ids));
+
+  const byMatch = new Map<number, typeof picks>();
+  for (const pick of picks) {
+    const list = byMatch.get(pick.matchId);
+    if (list) list.push(pick);
+    else byMatch.set(pick.matchId, [pick]);
+  }
+
+  return recent.map((match) => {
+    const list = byMatch.get(match.id) ?? [];
+    const exact: ResultBettor[] = [];
+    const correct: ResultBettor[] = [];
+    for (const pick of list) {
+      const base = scoreBet(pick.homePred, pick.awayPred, match.homeScore!, match.awayScore!);
+      if (base === 3) exact.push({ userId: pick.userId, username: pick.username });
+      else if (base === 1) correct.push({ userId: pick.userId, username: pick.username });
+    }
+    const byName = (a: ResultBettor, b: ResultBettor) => a.username.localeCompare(b.username);
+    exact.sort(byName);
+    correct.sort(byName);
+    return {
+      matchId: match.id,
+      stage: match.stage,
+      groupLabel: match.groupLabel,
+      homeTeam: match.homeTeam,
+      awayTeam: match.awayTeam,
+      homeScore: match.homeScore!,
+      awayScore: match.awayScore!,
+      kickoffMs: new Date(match.kickoffAt).getTime(),
+      multiplier: match.pointsMultiplier,
+      exact,
+      correct,
+      totalPicks: list.length,
+    };
+  });
 }
 
 export async function upsertBet(
