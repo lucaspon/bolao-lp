@@ -51,6 +51,7 @@ export default async function ProfilePage() {
           phase={window.phase}
           open={window.open}
           topUpOnly={window.topUpOnly}
+          firstTimeOnly={window.firstTimeOnly}
         />
       </div>
 

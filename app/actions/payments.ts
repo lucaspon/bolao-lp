@@ -35,18 +35,18 @@ export async function createEntryChargeAction(amountCents: number): Promise<Char
 
   const window = stakingWindow(await getStakingBounds());
   if (!window.open) {
-    return {
-      ok: false,
-      error:
-        window.phase === "group_running"
-          ? "Apostas reabrem para aumento após a fase de grupos."
-          : "As apostas estão encerradas.",
-    };
+    return { ok: false, error: "As apostas estão encerradas." };
   }
 
   const paid = await getUserStakeCents(user.id);
   if (window.topUpOnly && paid <= 0) {
     return { ok: false, error: "Janela de aumento — apenas para quem já apostou." };
+  }
+  if (window.firstTimeOnly && paid > 0) {
+    return {
+      ok: false,
+      error: "Aumentos reabrem após a fase de grupos — sua aposta já está valendo.",
+    };
   }
   if (paid === 0 && amountCents < ENTRY_MIN_CENTS) {
     return { ok: false, error: `Aposta mínima de ${real(ENTRY_MIN_CENTS)}.` };

@@ -70,7 +70,7 @@ export type LeaderRow = {
   groupLivePoints: number;
   koLivePoints: number;
   stakeCents: number; // total paid buy-in
-  stakeW1Cents: number; // paid before the group stage started
+  stakeW1Cents: number; // group-phase stake: paid before the group stage ended
 };
 
 // Provisional points (in-play + finished), optionally scoped to a stage filter.
@@ -90,11 +90,14 @@ const isKnockout = sql`and ${matches.stage} <> 'group'`;
 // Standings + the per-phase splits used by the phase-locked payout.
 export async function getLeaderboard(): Promise<LeaderRow[]> {
   const bounds = await getStakingBounds();
-  // Bind as an ISO string (postgres.js won't bind a raw Date) and cast in SQL.
-  const firstGroupIso = (
-    Number.isFinite(bounds.firstGroupMs)
-      ? new Date(bounds.firstGroupMs)
-      : new Date(8640000000000000) // far future → everything counts as pre-group
+  // The group-phase stake is everything committed before the group stage ENDS.
+  // That lets a mid-group joiner's stake ride on the (future) group matches they
+  // bet on, while a post-group top-up still rides on knockout points only. Bind
+  // as an ISO string (postgres.js won't bind a raw Date) and cast in SQL.
+  const groupStakeCutoffIso = (
+    Number.isFinite(bounds.lastGroupMs)
+      ? new Date(bounds.lastGroupMs)
+      : new Date(8640000000000000) // far future → everything counts as group-phase
   ).toISOString();
 
   return db
@@ -113,7 +116,7 @@ export async function getLeaderboard(): Promise<LeaderRow[]> {
       stakeCents: sql<number>`coalesce((select sum(${payments.amountCents}) from ${payments} where ${payments.userId} = ${users.id} and ${payments.status} = 'paid'), 0)`.mapWith(
         Number,
       ),
-      stakeW1Cents: sql<number>`coalesce((select sum(${payments.amountCents}) from ${payments} where ${payments.userId} = ${users.id} and ${payments.status} = 'paid' and ${payments.createdAt} < ${firstGroupIso}::timestamptz), 0)`.mapWith(
+      stakeW1Cents: sql<number>`coalesce((select sum(${payments.amountCents}) from ${payments} where ${payments.userId} = ${users.id} and ${payments.status} = 'paid' and ${payments.createdAt} < ${groupStakeCutoffIso}::timestamptz), 0)`.mapWith(
         Number,
       ),
     })

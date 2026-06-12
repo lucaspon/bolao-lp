@@ -19,13 +19,18 @@ type Props = {
   phase: StakingPhase;
   open: boolean;
   topUpOnly: boolean;
+  firstTimeOnly: boolean;
 };
 
-export function PayEntry({ stakeCents, phase, open, topUpOnly }: Props) {
+export function PayEntry({ stakeCents, phase, open, topUpOnly, firstTimeOnly }: Props) {
   const isFirst = stakeCents === 0;
   const minCents = isFirst ? ENTRY_MIN_CENTS : 100;
   const remainingCents = ENTRY_MAX_TOTAL_CENTS - stakeCents;
-  const canStake = open && remainingCents > 0 && !(topUpOnly && isFirst);
+  const canStake =
+    open &&
+    remainingCents > 0 &&
+    !(topUpOnly && isFirst) &&
+    !(firstTimeOnly && !isFirst);
 
   const [reais, setReais] = useState(isFirst ? String(ENTRY_MIN_CENTS / 100) : "50");
   const [pending, setPending] = useState(false);
@@ -114,6 +119,9 @@ export function PayEntry({ stakeCents, phase, open, topUpOnly }: Props) {
               ? `Aposte de ${brl(ENTRY_MIN_CENTS)} a ${brl(ENTRY_MAX_TOTAL_CENTS)}.`
               : `Aumente sua aposta (resta até ${brl(remainingCents)}).`}
             {topUpOnly && " Janela de aumento antes do mata-mata."}
+            {firstTimeOnly &&
+              isFirst &&
+              " A fase de grupos já começou — os jogos já disputados contam 0 para você."}
           </p>
           <div className="flex items-center gap-2">
             <span className="text-mute">R$</span>
@@ -150,7 +158,7 @@ export function PayEntry({ stakeCents, phase, open, topUpOnly }: Props) {
       ) : (
         <p className="text-sm text-mute">
           {phase === "group_running"
-            ? "Apostas reabrem para aumento após a fase de grupos."
+            ? "Aumentos reabrem após a fase de grupos — sua aposta já está valendo."
             : phase === "closed"
               ? "As apostas estão encerradas — o mata-mata começou."
               : topUpOnly && isFirst

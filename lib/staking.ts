@@ -8,6 +8,7 @@ export type StakingWindow = {
   phase: StakingPhase;
   open: boolean; // staking allowed right now
   topUpOnly: boolean; // top-up window — must already have a stake
+  firstTimeOnly: boolean; // join window — must NOT already have a stake
 };
 
 export type StakingBounds = {
@@ -16,12 +17,18 @@ export type StakingBounds = {
   firstKnockoutMs: number;
 };
 
-// Window 1: bet freely until the group stage begins.
-// Closed while the group stage is running.
-// Window 2: top-ups only, from the last group match until the knockouts begin.
+// Window 1 ("initial"): bet freely until the group stage begins.
+// "group_running": new players may still JOIN (first stake only) right up to the
+//   last group match. They can only bet on matches that haven't locked, so their
+//   elapsed/ongoing matches score 0. Existing players can't top up here — that
+//   would retroactively inflate group points they've already earned.
+// Window 2 ("topup"): top-ups only, from the last group match until the knockouts.
 export function stakingWindow(bounds: StakingBounds, now: number = Date.now()): StakingWindow {
-  if (now < bounds.firstGroupMs) return { phase: "initial", open: true, topUpOnly: false };
-  if (now < bounds.lastGroupMs) return { phase: "group_running", open: false, topUpOnly: false };
-  if (now < bounds.firstKnockoutMs) return { phase: "topup", open: true, topUpOnly: true };
-  return { phase: "closed", open: false, topUpOnly: false };
+  if (now < bounds.firstGroupMs)
+    return { phase: "initial", open: true, topUpOnly: false, firstTimeOnly: false };
+  if (now < bounds.lastGroupMs)
+    return { phase: "group_running", open: true, topUpOnly: false, firstTimeOnly: true };
+  if (now < bounds.firstKnockoutMs)
+    return { phase: "topup", open: true, topUpOnly: true, firstTimeOnly: false };
+  return { phase: "closed", open: false, topUpOnly: false, firstTimeOnly: false };
 }
