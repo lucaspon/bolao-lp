@@ -1,7 +1,7 @@
 import type { Match, Stage } from "./db/schema";
 
-// Bets lock one hour before kickoff.
-export const BET_LOCK_MS = 60 * 60 * 1000;
+// Bets lock ten minutes before kickoff.
+export const BET_LOCK_MS = 10 * 60 * 1000;
 
 export const STAGES: { key: Stage; label: string; short: string }[] = [
   { key: "group", label: "Fase de Grupos", short: "Grupos" },
@@ -50,7 +50,7 @@ export function isLockedAt(kickoffMs: number, now: number = Date.now()): boolean
   return now >= kickoffMs - BET_LOCK_MS;
 }
 
-// The palpite window closes 1h before kickoff; we warn for the 2h before that.
+// The palpite window closes 10min before kickoff; we warn for the 2h before that.
 export const BET_CLOSING_SOON_MS = 3 * 60 * 60 * 1000;
 
 // True while a still-open match is within 3h of kickoff (but not yet locked).
@@ -71,7 +71,7 @@ export function teamsKnown(match: Pick<Match, "homeTeam" | "awayTeam">): boolean
 }
 
 // A match accepts bets when both teams are known, it has not started, and
-// kickoff is more than an hour away.
+// kickoff is more than ten minutes away.
 export function canBet(match: Match): boolean {
   return (
     teamsKnown(match) &&
