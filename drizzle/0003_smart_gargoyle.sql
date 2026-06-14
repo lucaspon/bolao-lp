@@ -1,0 +1,1 @@
+ALTER TABLE "matches" ADD COLUMN "bets_forced_open" boolean DEFAULT false NOT NULL;

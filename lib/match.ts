@@ -71,11 +71,11 @@ export function teamsKnown(match: Pick<Match, "homeTeam" | "awayTeam">): boolean
 }
 
 // A match accepts bets when both teams are known, it has not started, and
-// kickoff is more than ten minutes away.
+// kickoff is more than ten minutes away — unless betsForcedOpen overrides the lock.
 export function canBet(match: Match): boolean {
   return (
     teamsKnown(match) &&
     match.status === "scheduled" &&
-    !isLockedAt(new Date(match.kickoffAt).getTime())
+    (match.betsForcedOpen || !isLockedAt(new Date(match.kickoffAt).getTime()))
   );
 }

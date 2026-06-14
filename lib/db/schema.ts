@@ -74,6 +74,7 @@ export const matches = pgTable("matches", {
   homeScore: integer("home_score"), // current/final score (set when live or finished)
   awayScore: integer("away_score"),
   pointsMultiplier: integer("points_multiplier").notNull().default(1), // by stage
+  betsForcedOpen: boolean("bets_forced_open").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
