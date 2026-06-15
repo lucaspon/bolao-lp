@@ -261,7 +261,7 @@ export function MatchPill({
         kb.editing
           ? "ring-2 ring-neon"
           : kb.selected
-            ? "ring-2 ring-neon/50"
+            ? "ring-2 ring-mute/60"
             : "",
         className,
       )}
