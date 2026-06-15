@@ -24,7 +24,9 @@ export async function getMatchesForUser(userId: number): Promise<MatchWithBet[]>
     .select()
     .from(matches)
     .leftJoin(bets, and(eq(bets.matchId, matches.id), eq(bets.userId, userId)))
-    .orderBy(asc(matches.kickoffAt));
+    // Canonical, stable order: kickoff, then teams alphabetically, then id as a
+    // final tiebreaker — so simultaneous matches don't reshuffle between refreshes.
+    .orderBy(asc(matches.kickoffAt), asc(matches.homeTeam), asc(matches.awayTeam), asc(matches.id));
 
   return rows.map((row) => ({
     ...row.matches,
