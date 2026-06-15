@@ -11,16 +11,16 @@ import { TEAMS } from "./teams";
 const API_BASE = "https://v3.football.api-sports.io";
 const WC_LEAGUE_ID = 1; // FIFA World Cup in API-Football
 
-// API-Football's free plan allows 100 requests/day. We poll adaptively to stay
-// under that while updating as fast as the day's match load allows:
+// API-Football's free plan allows 100 requests/day. To get the highest refresh
+// rate the quota allows, we spend up to DAILY_BUDGET calls on the day's in-play
+// minutes, distributed as evenly as possible:
 //   • the cron fires every CRON_STEP_MIN (see vercel.json — keep them in sync);
-//   • we only spend a call while a match is plausibly in play;
-//   • the interval between calls stretches on busy days so the total never
-//     exceeds DAILY_BUDGET. Light days poll every 2 min; the heaviest group days
-//     (many staggered matches) back off to a handful of minutes.
+//   • we list every cron tick at which a match is in play today;
+//   • if that count fits the budget, we poll every tick (max refresh, 2 min);
+//   • otherwise we evenly select exactly DAILY_BUDGET of those ticks, so the
+//     refresh rate is as fine as the quota permits and never exceeds it.
 const CRON_STEP_MIN = 2;
-const DAILY_BUDGET = 90; // headroom under the 100/day hard cap
-const MAX_INTERVAL_MIN = 10;
+const DAILY_BUDGET = 95; // the 100/day hard cap, with a little jitter headroom
 const MINUTE_MS = 60 * 1000;
 const PRE_KICKOFF_MIN = 2;
 const POST_KICKOFF_GROUP_MIN = 140; // 90 + half-time + stoppage + buffer
@@ -36,41 +36,43 @@ function isInPlayWindow(match: Match, now: number): boolean {
 }
 
 const startOfUtcDay = (now: number) => Math.floor(now / 86_400_000) * 86_400_000;
+const gridMinute = (now: number) =>
+  Math.floor((now - startOfUtcDay(now)) / MINUTE_MS / CRON_STEP_MIN) * CRON_STEP_MIN;
 
-// The poll interval (minutes, a multiple of the cron step) that keeps today's
-// total calls under budget: total in-play minutes today ÷ interval ≤ budget.
-// Overlapping (simultaneous) matches share one `live=all` call, so we count the
-// UNION of their in-play windows, not the sum.
-function pollIntervalMin(all: Match[], now: number): number {
+// Every cron tick (minute-of-day) at which at least one match is in play today.
+function liveTicksToday(all: Match[], now: number): number[] {
   const dayStart = startOfUtcDay(now);
-  const dayEnd = dayStart + 86_400_000;
-  const windows = all
-    .map((match) => {
-      const kickoff = new Date(match.kickoffAt).getTime();
-      return [kickoff - PRE_KICKOFF_MIN * MINUTE_MS, kickoff + postWindowMs(match.stage)] as const;
-    })
-    .filter(([start, end]) => end > dayStart && start < dayEnd)
-    .map(([start, end]) => [Math.max(start, dayStart), Math.min(end, dayEnd)] as const)
-    .sort((a, b) => a[0] - b[0]);
-
-  let unionMs = 0;
-  let curStart = -1;
-  let curEnd = -1;
-  for (const [start, end] of windows) {
-    if (start > curEnd) {
-      unionMs += Math.max(0, curEnd - curStart);
-      curStart = start;
-      curEnd = end;
-    } else {
-      curEnd = Math.max(curEnd, end);
-    }
+  const windows = all.map((match) => {
+    const kickoff = new Date(match.kickoffAt).getTime();
+    return [kickoff - PRE_KICKOFF_MIN * MINUTE_MS, kickoff + postWindowMs(match.stage)] as const;
+  });
+  const ticks: number[] = [];
+  for (let minute = 0; minute < 1440; minute += CRON_STEP_MIN) {
+    const t = dayStart + minute * MINUTE_MS;
+    if (windows.some(([start, end]) => t >= start && t <= end)) ticks.push(minute);
   }
-  unionMs += Math.max(0, curEnd - curStart);
+  return ticks;
+}
 
-  const inPlayMinutes = unionMs / MINUTE_MS;
-  const ideal = Math.ceil(inPlayMinutes / DAILY_BUDGET);
-  const stepped = Math.ceil(ideal / CRON_STEP_MIN) * CRON_STEP_MIN;
-  return Math.min(Math.max(stepped, CRON_STEP_MIN), MAX_INTERVAL_MIN);
+// Should this tick spend an API call? If the day's in-play ticks fit the budget,
+// poll them all. Otherwise evenly select exactly DAILY_BUDGET of them: tick at
+// index `i` is chosen when it maps to a new budget slot (a Bresenham spread), so
+// the chosen ticks are distributed as uniformly as the budget allows.
+function shouldPoll(ticks: number[], minute: number): boolean {
+  const count = ticks.length;
+  if (count === 0) return false;
+  if (count <= DAILY_BUDGET) return true;
+  const i = ticks.indexOf(minute);
+  if (i === -1) return true; // off-grid (cron jitter) but in play — don't skip it
+  return (
+    Math.floor((i * DAILY_BUDGET) / count) !== Math.floor(((i - 1) * DAILY_BUDGET) / count)
+  );
+}
+
+// Approximate average minutes between calls, for logging/observability.
+function effectiveIntervalMin(ticks: number[]): number {
+  const calls = Math.min(ticks.length, DAILY_BUDGET);
+  return calls > 0 ? Math.round((ticks.length * CRON_STEP_MIN) / calls) : CRON_STEP_MIN;
 }
 
 // API-Football team names that don't exactly match our TEAMS.name. Used only to
@@ -125,11 +127,11 @@ export async function syncLiveScores(): Promise<LiveSyncResult> {
     return { polled: false, live: 0, updated: 0 };
   }
 
-  // Quota guard 2: only spend a call on this tick's spacing boundary, so the
-  // day's total calls stay under budget even on heavy match days.
-  const intervalMin = pollIntervalMin(all, now);
-  const minuteOfDay = Math.floor((now - startOfUtcDay(now)) / MINUTE_MS);
-  if (minuteOfDay % intervalMin >= CRON_STEP_MIN) {
+  // Quota guard 2: spend a call only on the evenly-selected ticks, so the day's
+  // total stays within budget while keeping the refresh rate as high as it fits.
+  const ticks = liveTicksToday(all, now);
+  const intervalMin = effectiveIntervalMin(ticks);
+  if (!shouldPoll(ticks, gridMinute(now))) {
     return { polled: false, live: 0, updated: 0, intervalMin, throttled: true };
   }
 
