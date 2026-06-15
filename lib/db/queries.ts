@@ -257,6 +257,17 @@ export async function applyLiveScore(
     .where(and(eq(matches.id, matchId), ne(matches.status, "finished")));
 }
 
+// Fills in a match's venue once, leaving an existing value untouched. Venue
+// (from API-Football) is fixed for the tournament, so we only set it when null.
+export async function setMatchVenueIfMissing(matchId: number, venue: string): Promise<number> {
+  const rows = await db
+    .update(matches)
+    .set({ venue })
+    .where(and(eq(matches.id, matchId), isNull(matches.venue)))
+    .returning({ id: matches.id });
+  return rows.length;
+}
+
 // True if any bet on a match still lacks points — used by the sync to decide
 // whether a finished match needs (re)scoring.
 export async function hasUnscoredBets(matchId: number): Promise<boolean> {

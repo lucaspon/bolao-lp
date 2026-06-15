@@ -1,3 +1,4 @@
+import { MapPin } from "lucide-react";
 import { Countdown } from "@/components/countdown";
 import { BetControls } from "@/components/bet-controls";
 import { isLockedAt, isClosingSoon } from "@/lib/match";
@@ -45,7 +46,12 @@ export function MatchCard({ match }: { match: MatchWithBet }) {
               Grupo {match.groupLabel}
             </span>
           )}
-          <span className="truncate">{match.venue}</span>
+          {match.venue && (
+            <span className="flex min-w-0 items-center gap-1 truncate">
+              <MapPin size={12} className="shrink-0" />
+              {match.venue}
+            </span>
+          )}
         </span>
         <span className="shrink-0">
           {live ? (

@@ -1,7 +1,8 @@
 import { db } from "./db/client";
 import { matches, type Match } from "./db/schema";
-import { applyLiveScore } from "./db/queries";
+import { applyLiveScore, setMatchVenueIfMissing } from "./db/queries";
 import { TEAMS } from "./teams";
+import { venueLabel } from "./venues";
 
 // football-data's free tier doesn't report live/in-play scores, so we overlay
 // them from API-Football's `fixtures?live=all` (which IS available on the free
@@ -94,21 +95,51 @@ const NAME_ALIASES: Record<string, string> = {
   "bosnia and herzegovina": "BIH",
 };
 
-function teamCodeByName(): Map<string, string> {
+export function teamCodeByName(): Map<string, string> {
   const map = new Map<string, string>();
   for (const team of Object.values(TEAMS)) map.set(team.name.toLowerCase(), team.code);
   for (const [name, code] of Object.entries(NAME_ALIASES)) map.set(name, code);
   return map;
 }
 
-const minuteKey = (date: Date | string | number) => new Date(date).toISOString().slice(0, 16);
+export const minuteKey = (date: Date | string | number) =>
+  new Date(date).toISOString().slice(0, 16);
 
-type LiveFixture = {
-  fixture: { id: number; date: string; status: { short: string } };
+export const WC_LEAGUE = WC_LEAGUE_ID;
+export const API_FOOTBALL_BASE = API_BASE;
+
+// One API-Football fixture (live feed or date query). `venue` is present on both.
+export type ApiFixture = {
+  fixture: { id: number; date: string; status: { short: string }; venue?: { name?: string | null; city?: string | null } };
   league: { id: number };
   teams: { home: { name: string }; away: { name: string } };
   goals: { home: number | null; away: number | null };
 };
+
+// Finds the DB match a fixture refers to: primarily by kickoff minute, with the
+// home-team code disambiguating simultaneous kickoffs (the final group round).
+export function resolveDbMatch(
+  fixture: ApiFixture,
+  byMinute: Map<string, Match[]>,
+  codeOf: Map<string, string>,
+): Match | undefined {
+  let candidates = byMinute.get(minuteKey(fixture.fixture.date)) ?? [];
+  if (candidates.length > 1) {
+    const homeCode = codeOf.get(fixture.teams.home.name.trim().toLowerCase());
+    candidates = candidates.filter((m) => m.homeTeam === homeCode);
+  }
+  return candidates[0];
+}
+
+// Indexes matches by kickoff-minute for resolveDbMatch.
+export function indexByMinute(all: Match[]): Map<string, Match[]> {
+  const byMinute = new Map<string, Match[]>();
+  for (const match of all) {
+    const slot = minuteKey(match.kickoffAt);
+    (byMinute.get(slot) ?? byMinute.set(slot, []).get(slot)!).push(match);
+  }
+  return byMinute;
+}
 
 export type LiveSyncResult = {
   polled: boolean;
@@ -143,33 +174,28 @@ export async function syncLiveScores(): Promise<LiveSyncResult> {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`API-Football ${res.status}: ${await res.text()}`);
-  const data = (await res.json()) as { response?: LiveFixture[] };
+  const data = (await res.json()) as { response?: ApiFixture[] };
   const wc = (data.response ?? []).filter((f) => f?.league?.id === WC_LEAGUE_ID);
 
   const codeOf = teamCodeByName();
-  const byMinute = new Map<string, Match[]>();
-  for (const match of all) {
-    const slot = minuteKey(match.kickoffAt);
-    (byMinute.get(slot) ?? byMinute.set(slot, []).get(slot)!).push(match);
-  }
+  const byMinute = indexByMinute(all);
 
   let updated = 0;
   for (const fixture of wc) {
-    const { home, away } = fixture.goals;
-    if (home == null || away == null) continue;
-
-    let candidates = byMinute.get(minuteKey(fixture.fixture.date)) ?? [];
-    if (candidates.length > 1) {
-      const homeCode = codeOf.get(fixture.teams.home.name.trim().toLowerCase());
-      candidates = candidates.filter((m) => m.homeTeam === homeCode);
-    }
-    const match = candidates[0];
+    const match = resolveDbMatch(fixture, byMinute, codeOf);
     if (!match) {
       console.warn(
         `live: no DB match for ${fixture.teams.home.name}–${fixture.teams.away.name} @ ${fixture.fixture.date}`,
       );
       continue;
     }
+    // Capture the venue for free from the live feed (fixed for the tournament).
+    if (!match.venue) {
+      const label = venueLabel(fixture.fixture.venue?.city);
+      if (label) await setMatchVenueIfMissing(match.id, label);
+    }
+    const { home, away } = fixture.goals;
+    if (home == null || away == null) continue;
     await applyLiveScore(match.id, home, away);
     updated += 1;
   }

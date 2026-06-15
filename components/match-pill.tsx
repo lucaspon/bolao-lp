@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { MapPin } from "lucide-react";
 import { getTeam } from "@/lib/teams";
 import { HoverTip } from "@/components/hover-tip";
 import { useNow } from "@/components/use-now";
@@ -25,6 +26,7 @@ export type PillMatch = {
   awayScore: number | null;
   bet: { homePred: number; awayPred: number; points: number | null } | null;
   dateLabel: string;
+  venue: string | null;
 };
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -320,6 +322,14 @@ export function MatchPill({
           )}
           {match.dateLabel} · {statusLabel}
         </div>
+
+        {/* Location — only once the venue is known (filled progressively). */}
+        {match.venue && (
+          <div className="flex max-w-full items-center gap-0.5 truncate text-center text-[9px] text-mute/80">
+            <MapPin size={9} className="shrink-0" />
+            <span className="truncate">{match.venue}</span>
+          </div>
+        )}
       </div>
     </div>
   );

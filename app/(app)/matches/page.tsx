@@ -29,6 +29,7 @@ function toPill(match: MatchWithBet): PillMatch {
     awayScore: match.awayScore,
     bet: match.bet,
     dateLabel: formatPillKickoff(match.kickoffAt),
+    venue: match.venue,
   };
 }
 
