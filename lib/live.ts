@@ -10,10 +10,68 @@ import { TEAMS } from "./teams";
 
 const API_BASE = "https://v3.football.api-sports.io";
 const WC_LEAGUE_ID = 1; // FIFA World Cup in API-Football
-// Only call the API while a match is plausibly in progress, to stay within the
-// free plan's 100 requests/day (kickoff + 2h match + ET/pens + buffer).
-const WINDOW_AFTER_KICKOFF_MS = 3.5 * 60 * 60 * 1000;
-const WINDOW_BEFORE_KICKOFF_MS = 10 * 60 * 1000;
+
+// API-Football's free plan allows 100 requests/day. We poll adaptively to stay
+// under that while updating as fast as the day's match load allows:
+//   • the cron fires every CRON_STEP_MIN (see vercel.json — keep them in sync);
+//   • we only spend a call while a match is plausibly in play;
+//   • the interval between calls stretches on busy days so the total never
+//     exceeds DAILY_BUDGET. Light days poll every 2 min; the heaviest group days
+//     (many staggered matches) back off to a handful of minutes.
+const CRON_STEP_MIN = 2;
+const DAILY_BUDGET = 90; // headroom under the 100/day hard cap
+const MAX_INTERVAL_MIN = 10;
+const MINUTE_MS = 60 * 1000;
+const PRE_KICKOFF_MIN = 2;
+const POST_KICKOFF_GROUP_MIN = 140; // 90 + half-time + stoppage + buffer
+const POST_KICKOFF_KO_MIN = 185; // group window + extra time + penalties
+
+function postWindowMs(stage: Match["stage"]): number {
+  return (stage === "group" ? POST_KICKOFF_GROUP_MIN : POST_KICKOFF_KO_MIN) * MINUTE_MS;
+}
+
+function isInPlayWindow(match: Match, now: number): boolean {
+  const kickoff = new Date(match.kickoffAt).getTime();
+  return now >= kickoff - PRE_KICKOFF_MIN * MINUTE_MS && now <= kickoff + postWindowMs(match.stage);
+}
+
+const startOfUtcDay = (now: number) => Math.floor(now / 86_400_000) * 86_400_000;
+
+// The poll interval (minutes, a multiple of the cron step) that keeps today's
+// total calls under budget: total in-play minutes today ÷ interval ≤ budget.
+// Overlapping (simultaneous) matches share one `live=all` call, so we count the
+// UNION of their in-play windows, not the sum.
+function pollIntervalMin(all: Match[], now: number): number {
+  const dayStart = startOfUtcDay(now);
+  const dayEnd = dayStart + 86_400_000;
+  const windows = all
+    .map((match) => {
+      const kickoff = new Date(match.kickoffAt).getTime();
+      return [kickoff - PRE_KICKOFF_MIN * MINUTE_MS, kickoff + postWindowMs(match.stage)] as const;
+    })
+    .filter(([start, end]) => end > dayStart && start < dayEnd)
+    .map(([start, end]) => [Math.max(start, dayStart), Math.min(end, dayEnd)] as const)
+    .sort((a, b) => a[0] - b[0]);
+
+  let unionMs = 0;
+  let curStart = -1;
+  let curEnd = -1;
+  for (const [start, end] of windows) {
+    if (start > curEnd) {
+      unionMs += Math.max(0, curEnd - curStart);
+      curStart = start;
+      curEnd = end;
+    } else {
+      curEnd = Math.max(curEnd, end);
+    }
+  }
+  unionMs += Math.max(0, curEnd - curStart);
+
+  const inPlayMinutes = unionMs / MINUTE_MS;
+  const ideal = Math.ceil(inPlayMinutes / DAILY_BUDGET);
+  const stepped = Math.ceil(ideal / CRON_STEP_MIN) * CRON_STEP_MIN;
+  return Math.min(Math.max(stepped, CRON_STEP_MIN), MAX_INTERVAL_MIN);
+}
 
 // API-Football team names that don't exactly match our TEAMS.name. Used only to
 // disambiguate simultaneous matches (the final group round); the primary match
@@ -50,18 +108,30 @@ type LiveFixture = {
   goals: { home: number | null; away: number | null };
 };
 
-export type LiveSyncResult = { polled: boolean; live: number; updated: number };
+export type LiveSyncResult = {
+  polled: boolean;
+  live: number;
+  updated: number;
+  intervalMin?: number;
+  throttled?: boolean;
+};
 
 export async function syncLiveScores(): Promise<LiveSyncResult> {
   const all = await db.select().from(matches);
   const now = Date.now();
 
-  // Quota guard: skip the API entirely unless a match could be live right now.
-  const anyInWindow = all.some((match) => {
-    const kickoff = new Date(match.kickoffAt).getTime();
-    return kickoff > now - WINDOW_AFTER_KICKOFF_MS && kickoff < now + WINDOW_BEFORE_KICKOFF_MS;
-  });
-  if (!anyInWindow) return { polled: false, live: 0, updated: 0 };
+  // Quota guard 1: skip the API entirely unless a match could be live right now.
+  if (!all.some((match) => isInPlayWindow(match, now))) {
+    return { polled: false, live: 0, updated: 0 };
+  }
+
+  // Quota guard 2: only spend a call on this tick's spacing boundary, so the
+  // day's total calls stay under budget even on heavy match days.
+  const intervalMin = pollIntervalMin(all, now);
+  const minuteOfDay = Math.floor((now - startOfUtcDay(now)) / MINUTE_MS);
+  if (minuteOfDay % intervalMin >= CRON_STEP_MIN) {
+    return { polled: false, live: 0, updated: 0, intervalMin, throttled: true };
+  }
 
   const key = process.env.API_FOOTBALL_KEY;
   if (!key) throw new Error("API_FOOTBALL_KEY is not set.");
@@ -102,5 +172,5 @@ export async function syncLiveScores(): Promise<LiveSyncResult> {
     updated += 1;
   }
 
-  return { polled: true, live: wc.length, updated };
+  return { polled: true, live: wc.length, updated, intervalMin };
 }
