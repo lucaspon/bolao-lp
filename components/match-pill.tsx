@@ -249,8 +249,8 @@ export function MatchPill({
       className={cn(
         "flex min-h-[68px] flex-col rounded-lg px-2 py-2 outline-none transition",
         live
-          ? "live-border"
-          : isBrazil
+          ? "live-border bg-panel"
+          : isBrazil && !finished
             ? "brazil-border"
             : closingSoon
               ? "closing-border bg-panel"

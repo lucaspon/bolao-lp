@@ -23,7 +23,7 @@ export function MatchCard({ match }: { match: MatchWithBet }) {
   const closingSoon =
     match.status === "scheduled" && teamsKnown && isClosingSoon(kickoffMs);
   const stateClass = live
-    ? "live-border"
+    ? "live-border bg-panel"
     : !finished && closingSoon
       ? "closing-border bg-panel"
       : cn(
