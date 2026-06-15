@@ -24,18 +24,18 @@ export function MatchCard({ match }: { match: MatchWithBet }) {
     match.status === "scheduled" && teamsKnown && isClosingSoon(kickoffMs);
   const stateClass = live
     ? "live-border"
-    : cn(
-        "border bg-panel",
-        finished
-          ? base === 3
-            ? "border-neon/80"
-            : base === 1
-              ? "border-gold/60"
-              : "border-danger/60"
-          : closingSoon
-            ? "border-gold/70"
+    : !finished && closingSoon
+      ? "closing-border bg-panel"
+      : cn(
+          "border bg-panel",
+          finished
+            ? base === 3
+              ? "border-neon/80"
+              : base === 1
+                ? "border-gold/60"
+                : "border-danger/60"
             : "border-line",
-      );
+        );
 
   return (
     <article className={cn("rounded-2xl p-4 transition", stateClass)}>

@@ -191,11 +191,7 @@ export function MatchPill({
         : "border-danger/60"
     : !teamsKnown
       ? "border-line/50"
-      : locked
-        ? "border-line"
-        : closingSoon
-          ? "border-gold/70"
-          : "border-line";
+      : "border-line"; // closingSoon is handled by .closing-border on the container
 
   let statusLabel: string;
   if (live) {
@@ -256,10 +252,12 @@ export function MatchPill({
           ? "live-border"
           : isBrazil
             ? "brazil-border"
-            : cn(
-                "border bg-panel",
-                emphasis && !finished ? "border-gold/60" : borderClass,
-              ),
+            : closingSoon
+              ? "closing-border bg-panel"
+              : cn(
+                  "border bg-panel",
+                  emphasis && !finished ? "border-gold/60" : borderClass,
+                ),
         kb.editing
           ? "ring-2 ring-neon"
           : kb.selected

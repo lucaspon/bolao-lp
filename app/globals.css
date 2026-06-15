@@ -125,9 +125,28 @@ body {
   }
 }
 
+/* Pulsing blue border for matches that close to betting soon (within 3h). */
+.closing-border {
+  border: 1px solid var(--blue);
+  animation: closing-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes closing-pulse {
+  0%,
+  100% {
+    border-color: rgba(91, 157, 255, 0.35);
+    box-shadow: 0 0 0 0 rgba(91, 157, 255, 0);
+  }
+  50% {
+    border-color: rgba(91, 157, 255, 0.95);
+    box-shadow: 0 0 9px -2px rgba(91, 157, 255, 0.55);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .brazil-border,
-  .live-border {
+  .live-border,
+  .closing-border {
     animation: none;
   }
 }
