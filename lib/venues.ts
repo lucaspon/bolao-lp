@@ -22,7 +22,9 @@ const VENUE_CITY: Record<string, { label: string; country: string }> = {
   // Mexico
   "mexico city": { label: "Mexico City", country: "MX" },
   guadalajara: { label: "Guadalajara", country: "MX" },
+  zapopan: { label: "Guadalajara", country: "MX" }, // Estadio Akron
   monterrey: { label: "Monterrey", country: "MX" },
+  guadalupe: { label: "Monterrey", country: "MX" }, // Estadio BBVA
   // Canada
   toronto: { label: "Toronto", country: "CA" },
   vancouver: { label: "Vancouver", country: "CA" },
