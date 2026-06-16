@@ -159,22 +159,25 @@ export type ResultFeedItem = {
   exact: ResultBettor[]; // cravaram o placar
   correct: ResultBettor[]; // acertaram só o resultado
   totalPicks: number;
+  live: boolean; // true = in progress; the buckets are a preview of the current score
 };
 
-// The most recently played matches, each with who nailed the exact score and who
-// just got the result right. Powers the leaderboard's results feed.
+// The most recent matches — live ones first (a preview of who'd score if the
+// current score held), then the latest finished — each with who nailed the exact
+// score and who just got the result right. Powers the leaderboard's results feed.
 export async function getRecentResults(limit = 10): Promise<ResultFeedItem[]> {
   const recent = await db
     .select()
     .from(matches)
     .where(
       and(
-        eq(matches.status, "finished"),
+        inArray(matches.status, ["live", "finished"]),
         isNotNull(matches.homeScore),
         isNotNull(matches.awayScore),
       ),
     )
-    .orderBy(desc(matches.kickoffAt))
+    // Live (in-progress) matches first, then most recent kickoffs.
+    .orderBy(sql`case when ${matches.status} = 'live' then 0 else 1 end`, desc(matches.kickoffAt))
     .limit(limit);
   if (recent.length === 0) return [];
 
@@ -223,6 +226,7 @@ export async function getRecentResults(limit = 10): Promise<ResultFeedItem[]> {
       exact,
       correct,
       totalPicks: list.length,
+      live: match.status === "live",
     };
   });
 }

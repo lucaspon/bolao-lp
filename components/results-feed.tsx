@@ -70,21 +70,38 @@ function ResultCard({ item, meId }: { item: ResultFeedItem; meId: number }) {
       : STAGE_LABEL[item.stage];
 
   return (
-    <div className="rounded-xl border border-line bg-panel p-3">
+    <div
+      className={cn(
+        "rounded-xl p-3",
+        item.live ? "live-border bg-panel" : "border border-line bg-panel",
+      )}
+    >
       <div className="mb-2.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-sm">
           <TeamLabel code={item.homeTeam} />
-          <span className="tabular font-display text-lg font-bold text-ink">
+          <span
+            className={cn(
+              "tabular font-display text-lg font-bold",
+              item.live ? "text-gold" : "text-ink",
+            )}
+          >
             {item.homeScore}
             <span className="px-1 text-mute">–</span>
             {item.awayScore}
           </span>
           <TeamLabel code={item.awayTeam} />
         </div>
-        <span className="shrink-0 rounded bg-panel2 px-1.5 py-0.5 text-[10px] font-semibold text-mute">
-          {stageLabel}
-          {item.multiplier > 1 && <span className="ml-1 text-gold">×{item.multiplier}</span>}
-        </span>
+        {item.live ? (
+          <span className="flex shrink-0 items-center gap-1 rounded bg-gold/15 px-1.5 py-0.5 text-[10px] font-bold text-gold">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold" /> AO VIVO
+            {item.multiplier > 1 && <span className="ml-0.5">×{item.multiplier}</span>}
+          </span>
+        ) : (
+          <span className="shrink-0 rounded bg-panel2 px-1.5 py-0.5 text-[10px] font-semibold text-mute">
+            {stageLabel}
+            {item.multiplier > 1 && <span className="ml-1 text-gold">×{item.multiplier}</span>}
+          </span>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -116,9 +133,15 @@ function ResultCard({ item, meId }: { item: ResultFeedItem; meId: number }) {
 
 export function ResultsFeed({ items, meId }: { items: ResultFeedItem[]; meId: number }) {
   if (items.length === 0) return null;
+  const hasLive = items.some((item) => item.live);
   return (
     <section className="mt-8">
-      <h2 className="mb-3 font-display text-lg font-bold tracking-wide">Resultados recentes</h2>
+      <div className="mb-3 flex items-baseline gap-2">
+        <h2 className="font-display text-lg font-bold tracking-wide">Resultados recentes</h2>
+        {hasLive && (
+          <span className="text-xs text-mute">ao vivo = prévia, se o placar atual se mantiver</span>
+        )}
+      </div>
       <div className="grid gap-2.5 sm:grid-cols-2">
         {items.map((item) => (
           <ResultCard key={item.matchId} item={item} meId={meId} />
