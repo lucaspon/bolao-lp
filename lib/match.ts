@@ -46,6 +46,35 @@ export function matchPointsMultiplier(
   return STAGE_WEIGHT[stage] * (isBrazil ? BRAZIL_POINTS_MULTIPLIER : 1);
 }
 
+const MAX_BASE_POINTS = 3; // a cravada (exact score)
+// Knockout rounds Brazil would play on its way to lifting the trophy (no 3rd place).
+const BRAZIL_FINAL_RUN: Stage[] = ["round_of_32", "round_of_16", "quarter", "semi", "final"];
+
+// What share of the tournament's total points has already been decided, weighted
+// by stage (so the group stage counts for little and the late rounds for a lot).
+// The denominator assumes Brazil reaches the final — one match per knockout round
+// it plays is doubled — so it's an estimate until the bracket fills in.
+export function pointsElapsedPct(
+  matches: Pick<Match, "stage" | "status" | "pointsMultiplier">[],
+): number {
+  let elapsed = 0;
+  let total = 0;
+  for (const match of matches) {
+    // Group multipliers (incl. Brazil ×2) are already fixed; knockout teams are
+    // undecided, so use the base stage weight and add Brazil's run separately.
+    const maxPoints =
+      match.stage === "group"
+        ? MAX_BASE_POINTS * match.pointsMultiplier
+        : MAX_BASE_POINTS * STAGE_WEIGHT[match.stage];
+    total += maxPoints;
+    if (match.status === "finished") elapsed += MAX_BASE_POINTS * match.pointsMultiplier;
+  }
+  for (const round of BRAZIL_FINAL_RUN) {
+    total += MAX_BASE_POINTS * STAGE_WEIGHT[round] * (BRAZIL_POINTS_MULTIPLIER - 1);
+  }
+  return total > 0 ? (elapsed / total) * 100 : 0;
+}
+
 export function isLockedAt(kickoffMs: number, now: number = Date.now()): boolean {
   return now >= kickoffMs - BET_LOCK_MS;
 }

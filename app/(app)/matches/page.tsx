@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth/session";
 import { getMatchesForUser, type MatchWithBet } from "@/lib/db/queries";
-import { canBet, isLockedAt, isClosingSoon } from "@/lib/match";
+import { canBet, isLockedAt, isClosingSoon, pointsElapsedPct } from "@/lib/match";
 import { stakingWindow } from "@/lib/staking";
 import { BetDeadlineCallout } from "@/components/bet-deadline-callout";
 import { GROUP_LABELS } from "@/lib/teams";
@@ -83,6 +83,30 @@ function toBracketPills(matches: MatchWithBet[]): BracketPill[] {
   });
 }
 
+// Weighted tournament progress: how much of the total points pool has already
+// been decided (assuming Brazil reaches the final). Climbs slowly through the
+// group stage and jumps in the heavily-weighted knockouts.
+function PointsElapsed({ pct }: { pct: number }) {
+  const rounded = Math.round(pct);
+  return (
+    <div className="mb-4 rounded-xl border border-line bg-panel px-4 py-3">
+      <div className="mb-1.5 flex items-baseline justify-between gap-2">
+        <span className="text-xs text-mute">
+          Pontos do torneio já decididos{" "}
+          <span className="text-mute/60">(estimado, Brasil até a final)</span>
+        </span>
+        <span className="tabular font-display text-sm font-bold text-neon">{rounded}%</span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-base">
+        <div
+          className="h-full rounded-full bg-neon transition-all"
+          style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function StatChip({ value, label }: { value: number | string; label: string }) {
   return (
     <div className="flex items-baseline gap-1.5 rounded-lg border border-line bg-panel px-3 py-1.5">
@@ -120,6 +144,7 @@ export default async function MatchesPage() {
     (sum, match) => sum + (match.bet?.points ?? 0),
     0,
   );
+  const elapsedPct = pointsElapsedPct(matches);
 
   const groupMatches = matches.filter((match) => match.stage === "group");
   const knockoutPills = toBracketPills(matches.filter((match) => match.stage !== "group"));
@@ -159,6 +184,8 @@ export default async function MatchesPage() {
           <StatChip value={openNow} label="abertos" />
         </div>
       </div>
+
+      <PointsElapsed pct={elapsedPct} />
 
       {topupCloses && <BetDeadlineCallout deadlineMs={topupCloses} />}
 
