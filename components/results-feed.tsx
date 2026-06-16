@@ -135,14 +135,14 @@ export function ResultsFeed({ items, meId }: { items: ResultFeedItem[]; meId: nu
   if (items.length === 0) return null;
   const hasLive = items.some((item) => item.live);
   return (
-    <section className="mt-8">
-      <div className="mb-3 flex items-baseline gap-2">
+    <section className="lg:sticky lg:top-20">
+      <div className="mb-3">
         <h2 className="font-display text-lg font-bold tracking-wide">Resultados recentes</h2>
         {hasLive && (
-          <span className="text-xs text-mute">ao vivo = prévia, se o placar atual se mantiver</span>
+          <p className="text-xs text-mute">ao vivo = prévia, se o placar atual se mantiver</p>
         )}
       </div>
-      <div className="grid gap-2.5 sm:grid-cols-2">
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-1 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
         {items.map((item) => (
           <ResultCard key={item.matchId} item={item} meId={meId} />
         ))}
