@@ -310,6 +310,20 @@ export async function applyLiveScore(
     .where(and(eq(matches.id, matchId), ne(matches.status, "finished")));
 }
 
+// Finalizes a match we had marked live, once the live feed no longer lists it
+// (i.e. it's over). Uses the last live score and rescores; football-data's sync
+// later confirms/corrects the official score. No-op if not currently live.
+export async function finalizeLiveMatch(matchId: number): Promise<boolean> {
+  const [saved] = await db
+    .update(matches)
+    .set({ status: "finished" })
+    .where(and(eq(matches.id, matchId), eq(matches.status, "live")))
+    .returning({ id: matches.id, homeScore: matches.homeScore, awayScore: matches.awayScore });
+  if (!saved || saved.homeScore === null || saved.awayScore === null) return false;
+  await rescoreMatch(saved.id, saved.homeScore, saved.awayScore);
+  return true;
+}
+
 // Fills in a match's venue once, leaving an existing value untouched. Venue
 // (from API-Football) is fixed for the tournament, so we only set it when null.
 export async function setMatchVenueIfMissing(matchId: number, venue: string): Promise<number> {
