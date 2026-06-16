@@ -37,14 +37,14 @@ function toPill(match: MatchWithBet): PillMatch {
 // fewer on smaller screens. One column per group, pills stacked inside.
 function GroupStage({ matches }: { matches: MatchWithBet[] }) {
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+    <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
       {GROUP_LABELS.map((label) => {
         const list = matches.filter((match) => match.groupLabel === label);
         if (list.length === 0) return null;
         return (
-          <div key={label} className="flex flex-col gap-1.5">
+          <div key={label} className="flex flex-col gap-2">
             <div className="flex items-baseline gap-1 px-0.5">
-              <span className="font-display text-base font-bold text-neon">
+              <span className="font-display font-bold text-neon">
                 {label}
               </span>
               <span className="text-[10px] uppercase tracking-wide text-mute">

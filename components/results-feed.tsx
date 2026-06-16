@@ -136,8 +136,8 @@ export function ResultsFeed({ items, meId }: { items: ResultFeedItem[]; meId: nu
   const hasLive = items.some((item) => item.live);
   return (
     <section className="lg:sticky lg:top-20">
-      <div className="mb-3">
-        <h2 className="font-display text-lg font-bold tracking-wide">Resultados recentes</h2>
+      <div className="mb-8">
+        <h1 className="font-display text-2xl font-bold tracking-wide">Resultados recentes</h1>
         {hasLive && (
           <p className="text-xs text-mute">ao vivo = prévia, se o placar atual se mantiver</p>
         )}

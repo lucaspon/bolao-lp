@@ -25,7 +25,7 @@ export default async function LeaderboardPage() {
 
   return (
     <div className="w-full">
-      <div className="grid items-start gap-12 lg:grid-cols-3">
+      <div className="grid items-start md:gap-18 lg:gap-24 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <LeaderboardView
             rows={rows}
