@@ -142,7 +142,7 @@ export function ResultsFeed({ items, meId }: { items: ResultFeedItem[]; meId: nu
           <p className="text-xs text-mute">ao vivo = prévia, se o placar atual se mantiver</p>
         )}
       </div>
-      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-1 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
+      <div className="no-scrollbar grid gap-2.5 sm:grid-cols-2 lg:grid-cols-1 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
         {items.map((item) => (
           <ResultCard key={item.matchId} item={item} meId={meId} />
         ))}
