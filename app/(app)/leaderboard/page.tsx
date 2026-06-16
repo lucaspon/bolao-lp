@@ -25,17 +25,15 @@ export default async function LeaderboardPage() {
 
   return (
     <div className="w-full">
-      <div className="grid items-start gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <LeaderboardView
-            rows={rows}
-            meId={me.id}
-            concluded={concluded}
-            liveCount={liveCount}
-            potCents={potCents}
-            scoredBets={scoredBets}
-          />
-        </div>
+      <div className="grid items-start gap-12 lg:grid-cols-2">
+        <LeaderboardView
+          rows={rows}
+          meId={me.id}
+          concluded={concluded}
+          liveCount={liveCount}
+          potCents={potCents}
+          scoredBets={scoredBets}
+        />
         <ResultsFeed items={results} meId={me.id} />
       </div>
     </div>
