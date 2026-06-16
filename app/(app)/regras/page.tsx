@@ -53,7 +53,7 @@ export default async function RegrasPage() {
             </li>
           </ul>
           <p>
-            Você pode criar e editar seus palpites até <strong>1 hora antes</strong> de cada jogo
+            Você pode criar e editar seus palpites até <strong>10 minutos antes</strong> de cada jogo
             começar. Depois disso, o palpite tranca.
           </p>
         </Section>

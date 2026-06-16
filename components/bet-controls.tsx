@@ -263,7 +263,7 @@ function Footer({
         {error ? (
           <span className="text-danger">{error}</span>
         ) : bet ? (
-          "Dá pra editar até 1h antes do jogo"
+          "Dá pra editar até 10 min antes do jogo"
         ) : (
           "Faça seu palpite"
         )}

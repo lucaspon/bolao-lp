@@ -175,7 +175,7 @@ export default async function MatchesPage() {
           </h1>
           <p className="text-sm text-mute">
             Toque no placar para palpitar. +3 cravando, +1 acertando o resultado.
-            Fecha 1h antes do jogo.
+            Fecha 10 min antes do jogo.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
