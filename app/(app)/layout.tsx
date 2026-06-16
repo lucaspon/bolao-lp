@@ -11,7 +11,7 @@ export default async function AppLayout({
   return (
     <>
       <Nav username={user.username} isAdmin={user.isAdmin} />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 lg:max-w-[min(85vw,1800px)]">
         {children}
       </main>
       <footer className="border-t border-line py-5 text-center text-xs text-mute">

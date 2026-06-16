@@ -24,8 +24,8 @@ export default async function LeaderboardPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="grid items-start gap-6 lg:grid-cols-3">
+    <div className="w-full">
+      <div className="grid items-start gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <LeaderboardView
             rows={rows}
