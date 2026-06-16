@@ -72,7 +72,7 @@ function ResultCard({ item, meId }: { item: ResultFeedItem; meId: number }) {
   return (
     <div
       className={cn(
-        "rounded-xl p-3 scrollbar-none",
+        "rounded-xl p-3",
         item.live ? "live-border bg-panel" : "border border-line bg-panel",
       )}
     >
@@ -135,7 +135,7 @@ export function ResultsFeed({ items, meId }: { items: ResultFeedItem[]; meId: nu
   if (items.length === 0) return null;
   const hasLive = items.some((item) => item.live);
   return (
-    <section className="lg:sticky lg:top-20">
+    <section className="lg:sticky lg:top-20 scrollbar-none">
       <div className="mb-8">
         <h1 className="font-display text-2xl font-bold tracking-wide">Resultados recentes</h1>
         {hasLive && (
