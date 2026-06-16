@@ -72,7 +72,7 @@ function ResultCard({ item, meId }: { item: ResultFeedItem; meId: number }) {
   return (
     <div
       className={cn(
-        "rounded-xl p-3",
+        "rounded-xl p-3 scrollbar-none",
         item.live ? "live-border bg-panel" : "border border-line bg-panel",
       )}
     >
