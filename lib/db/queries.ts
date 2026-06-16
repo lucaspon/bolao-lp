@@ -227,6 +227,53 @@ export async function getRecentResults(limit = 10): Promise<ResultFeedItem[]> {
   });
 }
 
+// Every bet a user scored points on, with the match result and points, newest
+// first. Powers the per-player hover breakdown on the leaderboard.
+export type ScoredBet = {
+  homeTeam: string | null;
+  awayTeam: string | null;
+  homeScore: number;
+  awayScore: number;
+  points: number;
+  kickoffMs: number;
+};
+
+export async function getScoredBetsByUser(): Promise<Record<number, ScoredBet[]>> {
+  const rows = await db
+    .select({
+      userId: bets.userId,
+      homeTeam: matches.homeTeam,
+      awayTeam: matches.awayTeam,
+      homeScore: matches.homeScore,
+      awayScore: matches.awayScore,
+      points: bets.points,
+      kickoffAt: matches.kickoffAt,
+    })
+    .from(bets)
+    .innerJoin(matches, eq(matches.id, bets.matchId))
+    .where(
+      and(
+        sql`${bets.points} > 0`,
+        isNotNull(matches.homeScore),
+        isNotNull(matches.awayScore),
+      ),
+    )
+    .orderBy(desc(matches.kickoffAt));
+
+  const byUser: Record<number, ScoredBet[]> = {};
+  for (const row of rows) {
+    (byUser[row.userId] ??= []).push({
+      homeTeam: row.homeTeam,
+      awayTeam: row.awayTeam,
+      homeScore: row.homeScore!,
+      awayScore: row.awayScore!,
+      points: row.points!,
+      kickoffMs: new Date(row.kickoffAt).getTime(),
+    });
+  }
+  return byUser;
+}
+
 export async function upsertBet(
   userId: number,
   matchId: number,

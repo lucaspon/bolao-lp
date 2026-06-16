@@ -5,6 +5,7 @@ import {
   getLiveMatchCount,
   getPotTotalCents,
   getRecentResults,
+  getScoredBetsByUser,
 } from "@/lib/db/queries";
 import { LeaderboardView } from "@/components/leaderboard-view";
 import { ResultsFeed } from "@/components/results-feed";
@@ -13,12 +14,13 @@ export const dynamic = "force-dynamic";
 
 export default async function LeaderboardPage() {
   const me = await requireUser();
-  const [rows, concluded, liveCount, potCents, results] = await Promise.all([
+  const [rows, concluded, liveCount, potCents, results, scoredBets] = await Promise.all([
     getLeaderboard(),
     getConcludedMatchCount(),
     getLiveMatchCount(),
     getPotTotalCents(),
     getRecentResults(),
+    getScoredBetsByUser(),
   ]);
 
   return (
@@ -29,6 +31,7 @@ export default async function LeaderboardPage() {
         concluded={concluded}
         liveCount={liveCount}
         potCents={potCents}
+        scoredBets={scoredBets}
       />
       <ResultsFeed items={results} meId={me.id} />
     </div>

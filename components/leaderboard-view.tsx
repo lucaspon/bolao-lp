@@ -2,8 +2,30 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import type { LeaderRow } from "@/lib/db/queries";
+import { getTeam } from "@/lib/teams";
+import { HoverTip } from "@/components/hover-tip";
+import type { LeaderRow, ScoredBet } from "@/lib/db/queries";
 import { computePayouts } from "@/lib/payout";
+
+function flagOf(code: string | null): string {
+  return getTeam(code)?.flag ?? "⚽";
+}
+
+// Hover breakdown: each match the player scored on — "🇧🇷 2 x 1 🇲🇦 +6pts".
+function ScoredBetsList({ bets }: { bets: ScoredBet[] }) {
+  return (
+    <div className="flex max-h-[60vh] flex-col gap-1 text-left">
+      {bets.map((bet, index) => (
+        <div key={index} className="flex items-center justify-between gap-3 whitespace-nowrap">
+          <span>
+            {flagOf(bet.homeTeam)} {bet.homeScore} x {bet.awayScore} {flagOf(bet.awayTeam)}
+          </span>
+          <span className="font-bold text-neon">+{bet.points}pts</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -66,12 +88,14 @@ export function LeaderboardView({
   concluded,
   liveCount,
   potCents,
+  scoredBets,
 }: {
   rows: LeaderRow[];
   meId: number;
   concluded: number;
   liveCount: number;
   potCents: number;
+  scoredBets: Record<number, ScoredBet[]>;
 }) {
   const hasLive = liveCount > 0;
   const [view, setView] = useState<View>("live"); // Prévia is the default view
@@ -172,6 +196,8 @@ export function LeaderboardView({
               const isMe = row.userId === meId;
               const gold = qualifies(row);
               const rank = rankOf(row);
+              const myScored = scoredBets[row.userId] ?? [];
+              const nameColor = isMe ? "text-neon" : gold ? "text-gold" : "text-ink";
               return (
                 <tr
                   key={row.userId}
@@ -194,15 +220,20 @@ export function LeaderboardView({
                     )}
                   </td>
                   <td className="px-3 py-2.5 font-medium">
-                    {row.username === "Claude AI" ? (
-                      <span className={isMe ? "text-neon" : gold ? "text-gold" : "text-ink"}>
-                        🤖 <span className="font-mono">{row.username}</span>
+                    <HoverTip
+                      content={myScored.length > 0 ? <ScoredBetsList bets={myScored} /> : undefined}
+                      className={cn(myScored.length > 0 && "cursor-help")}
+                    >
+                      <span className={nameColor}>
+                        {row.username === "Claude AI" ? (
+                          <>
+                            🤖 <span className="font-mono">{row.username}</span>
+                          </>
+                        ) : (
+                          row.username
+                        )}
                       </span>
-                    ) : (
-                      <span className={isMe ? "text-neon" : gold ? "text-gold" : "text-ink"}>
-                        {row.username}
-                      </span>
-                    )}
+                    </HoverTip>
                     {isMe && <span className="ml-1.5 text-xs text-mute">(você)</span>}
                   </td>
                   <td className="tabular px-3 py-2.5 text-right text-mute">{row.exact}</td>
