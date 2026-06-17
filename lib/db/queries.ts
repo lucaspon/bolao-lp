@@ -287,14 +287,28 @@ export type ProgressionSeries = {
   positions: number[];
   finalPosition: number;
 };
+export type ProgressionMatch = {
+  ms: number;
+  homeTeam: string | null;
+  awayTeam: string | null;
+  homeScore: number | null;
+  awayScore: number | null;
+};
 export type PointsProgression = {
-  timeline: { ms: number }[];
+  timeline: ProgressionMatch[];
   series: ProgressionSeries[];
 };
 
 export async function getTopPlayersProgression(topN = 10): Promise<PointsProgression> {
   const finished = await db
-    .select({ id: matches.id, kickoffAt: matches.kickoffAt })
+    .select({
+      id: matches.id,
+      kickoffAt: matches.kickoffAt,
+      homeTeam: matches.homeTeam,
+      awayTeam: matches.awayTeam,
+      homeScore: matches.homeScore,
+      awayScore: matches.awayScore,
+    })
     .from(matches)
     .where(eq(matches.status, "finished"))
     .orderBy(asc(matches.kickoffAt));
@@ -347,7 +361,14 @@ export async function getTopPlayersProgression(topN = 10): Promise<PointsProgres
     }))
     .sort((a, b) => a.finalPosition - b.finalPosition || a.username.localeCompare(b.username));
 
-  return { timeline: finished.map((m) => ({ ms: new Date(m.kickoffAt).getTime() })), series };
+  const timeline = finished.map((m) => ({
+    ms: new Date(m.kickoffAt).getTime(),
+    homeTeam: m.homeTeam,
+    awayTeam: m.awayTeam,
+    homeScore: m.homeScore,
+    awayScore: m.awayScore,
+  }));
+  return { timeline, series };
 }
 
 export async function upsertBet(
