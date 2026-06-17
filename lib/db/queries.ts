@@ -278,14 +278,14 @@ export async function getScoredBetsByUser(): Promise<Record<number, ScoredBet[]>
   return byUser;
 }
 
-// Cumulative points for the current top-N players across the finished-match
-// timeline — powers the leaderboard evolution chart. Each series' `cumulative[i]`
-// is that player's total official points after the i-th finished match.
+// Leaderboard POSITION of the current top-N players across the finished-match
+// timeline — a "bump chart". `positions[i]` is that player's competition rank
+// (1 = top, among all players with bets) after the i-th finished match.
 export type ProgressionSeries = {
   userId: number;
   username: string;
-  cumulative: number[];
-  total: number;
+  positions: number[];
+  finalPosition: number;
 };
 export type PointsProgression = {
   timeline: { ms: number }[];
@@ -312,28 +312,40 @@ export async function getTopPlayersProgression(topN = 10): Promise<PointsProgres
     .innerJoin(users, eq(users.id, bets.userId))
     .where(and(eq(matches.status, "finished"), isNotNull(bets.points)));
 
-  const totals = new Map<number, number>();
   const names = new Map<number, string>();
   const perMatch = new Map<string, number>(); // `${userId}:${matchId}` -> points
   for (const row of rows) {
     names.set(row.userId, row.username);
-    totals.set(row.userId, (totals.get(row.userId) ?? 0) + (row.points ?? 0));
     perMatch.set(`${row.userId}:${row.matchId}`, row.points ?? 0);
   }
+  const userIds = [...names.keys()];
 
-  const topIds = [...totals.entries()]
-    .sort((a, b) => b[1] - a[1] || names.get(a[0])!.localeCompare(names.get(b[0])!))
-    .slice(0, topN)
-    .map(([id]) => id);
+  // Walk the timeline, accumulating points and recording everyone's rank after
+  // each match (competition rank: 1 + how many score strictly higher).
+  const cum = new Map<number, number>(userIds.map((id) => [id, 0]));
+  const positionsByUser = new Map<number, number[]>(userIds.map((id) => [id, []]));
+  for (const match of finished) {
+    for (const id of userIds) cum.set(id, cum.get(id)! + (perMatch.get(`${id}:${match.id}`) ?? 0));
+    for (const id of userIds) {
+      const mine = cum.get(id)!;
+      const rank = 1 + userIds.filter((other) => cum.get(other)! > mine).length;
+      positionsByUser.get(id)!.push(rank);
+    }
+  }
 
-  const series: ProgressionSeries[] = topIds.map((userId) => {
-    let cum = 0;
-    const cumulative = finished.map((m) => {
-      cum += perMatch.get(`${userId}:${m.id}`) ?? 0;
-      return cum;
-    });
-    return { userId, username: names.get(userId)!, cumulative, total: cum };
-  });
+  const lastIdx = finished.length - 1;
+  const topIds = [...userIds]
+    .sort((a, b) => cum.get(b)! - cum.get(a)! || names.get(a)!.localeCompare(names.get(b)!))
+    .slice(0, topN);
+
+  const series: ProgressionSeries[] = topIds
+    .map((userId) => ({
+      userId,
+      username: names.get(userId)!,
+      positions: positionsByUser.get(userId)!,
+      finalPosition: positionsByUser.get(userId)![lastIdx],
+    }))
+    .sort((a, b) => a.finalPosition - b.finalPosition || a.username.localeCompare(b.username));
 
   return { timeline: finished.map((m) => ({ ms: new Date(m.kickoffAt).getTime() })), series };
 }
