@@ -5,7 +5,8 @@ import { ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getTeam } from "@/lib/teams";
 import { HoverTip } from "@/components/hover-tip";
-import type { LeaderRow, ScoredBet } from "@/lib/db/queries";
+import { PointsChart } from "@/components/points-chart";
+import type { LeaderRow, ScoredBet, PointsProgression } from "@/lib/db/queries";
 import { computePayouts } from "@/lib/payout";
 
 function flagOf(code: string | null): string {
@@ -90,6 +91,7 @@ export function LeaderboardView({
   liveCount,
   potCents,
   scoredBets,
+  progression,
 }: {
   rows: LeaderRow[];
   meId: number;
@@ -97,6 +99,7 @@ export function LeaderboardView({
   liveCount: number;
   potCents: number;
   scoredBets: Record<number, ScoredBet[]>;
+  progression: PointsProgression;
 }) {
   const hasLive = liveCount > 0;
   const [view, setView] = useState<View>("live"); // Prévia is the default view
@@ -174,6 +177,8 @@ export function LeaderboardView({
           Prévia — conta os jogos em andamento pelo placar atual. Não é a classificação final.
         </p>
       )}
+
+      <PointsChart progression={progression} meId={meId} />
 
       {top.length > 0 ? (
         <Podium top={top} meId={meId} metric={view} />

@@ -37,9 +37,10 @@ export default async function LeaderboardPage() {
             liveCount={liveCount}
             potCents={potCents}
             scoredBets={scoredBets}
+            progression={progression}
           />
         </div>
-        <ResultsFeed items={results} meId={me.id} progression={progression} />
+        <ResultsFeed items={results} meId={me.id} />
       </div>
     </div>
   );

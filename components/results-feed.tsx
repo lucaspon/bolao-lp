@@ -4,8 +4,7 @@ import { useState } from "react";
 import { Target, Check } from "lucide-react";
 import { getTeam } from "@/lib/teams";
 import { STAGE_LABEL } from "@/lib/match";
-import { PointsChart } from "@/components/points-chart";
-import type { ResultFeedItem, ResultBettor, PointsProgression } from "@/lib/db/queries";
+import type { ResultFeedItem, ResultBettor } from "@/lib/db/queries";
 import { cn } from "@/lib/utils";
 
 const MAX_NAMES = 12; // cap long "acertou o resultado" lists; rest collapse to "+N"
@@ -132,20 +131,11 @@ function ResultCard({ item, meId }: { item: ResultFeedItem; meId: number }) {
   );
 }
 
-export function ResultsFeed({
-  items,
-  meId,
-  progression,
-}: {
-  items: ResultFeedItem[];
-  meId: number;
-  progression: PointsProgression;
-}) {
+export function ResultsFeed({ items, meId }: { items: ResultFeedItem[]; meId: number }) {
   const hasLive = items.some((item) => item.live);
-  if (items.length === 0 && progression.series.length === 0) return null;
+  if (items.length === 0) return null;
   return (
     <section className="lg:sticky lg:top-20 scrollbar-none">
-      <PointsChart progression={progression} meId={meId} />
       <div className="mb-8">
         <h1 className="font-display text-2xl font-bold tracking-wide">Resultados recentes</h1>
         {hasLive && (

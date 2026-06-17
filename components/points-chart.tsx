@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { getTeam } from "@/lib/teams";
+import { cn } from "@/lib/utils";
 import type { PointsProgression } from "@/lib/db/queries";
 
 // 10 distinct line colours.
@@ -67,9 +68,10 @@ export function PointsChart({
   const hv = hover != null ? timeline[hover] : null;
 
   return (
-    <div className="mb-4 rounded-xl border border-line bg-panel p-3">
+    <div className="mb-6 rounded-xl border border-line bg-panel p-3">
       <div className="mb-2 text-xs font-semibold text-mute">Posições do top 10</div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Evolução das posições do top 10">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full sm:flex-1" role="img" aria-label="Evolução das posições do top 10">
         {/* top (1º) and bottom (last) guide lines */}
         <line x1={padL} y1={y(1)} x2={W - padR} y2={y(1)} stroke="var(--line)" strokeWidth={0.5} strokeDasharray="2 2" />
         <line x1={padL} y1={y(maxRank)} x2={W - padR} y2={y(maxRank)} stroke="var(--line)" strokeWidth={0.5} />
@@ -139,19 +141,21 @@ export function PointsChart({
           />
         ))}
       </svg>
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px]">
+      <div className="flex flex-col gap-1 text-[11px] sm:w-44 sm:shrink-0">
         {series.map((s, idx) => (
-          <span key={s.userId} className="flex items-center gap-1">
+          <span key={s.userId} className="flex items-center gap-1.5">
             <span
-              className="inline-block h-1.5 w-3 rounded-full"
+              className="inline-block h-1.5 w-3 shrink-0 rounded-full"
               style={{ backgroundColor: PALETTE[idx % PALETTE.length] }}
             />
-            <span className={s.userId === meId ? "font-bold text-ink" : "text-mute"}>
+            <span className="shrink-0 tabular text-mute">{s.finalPosition}º</span>
+            <span className={cn("truncate", s.userId === meId ? "font-bold text-ink" : "text-mute")}>
               {s.username === "Claude AI" ? "🤖 Claude AI" : s.username}
-              {s.userId === meId ? " (você)" : ""} · {s.finalPosition}º
+              {s.userId === meId ? " (você)" : ""}
             </span>
           </span>
         ))}
+      </div>
       </div>
     </div>
   );
