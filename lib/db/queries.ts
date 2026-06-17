@@ -287,16 +287,19 @@ export type ProgressionSeries = {
   positions: number[];
   finalPosition: number;
 };
+export type ProgressionStanding = { username: string; position: number };
 export type ProgressionMatch = {
   ms: number;
   homeTeam: string | null;
   awayTeam: string | null;
   homeScore: number | null;
   awayScore: number | null;
+  top5: ProgressionStanding[]; // standings right after this match
 };
 export type PointsProgression = {
   timeline: ProgressionMatch[];
   series: ProgressionSeries[];
+  playerCount: number; // total ranked players (= last possible position)
 };
 
 export async function getTopPlayersProgression(topN = 10): Promise<PointsProgression> {
@@ -312,7 +315,7 @@ export async function getTopPlayersProgression(topN = 10): Promise<PointsProgres
     .from(matches)
     .where(eq(matches.status, "finished"))
     .orderBy(asc(matches.kickoffAt));
-  if (finished.length === 0) return { timeline: [], series: [] };
+  if (finished.length === 0) return { timeline: [], series: [], playerCount: 0 };
 
   const rows = await db
     .select({
@@ -338,6 +341,7 @@ export async function getTopPlayersProgression(topN = 10): Promise<PointsProgres
   // each match (competition rank: 1 + how many score strictly higher).
   const cum = new Map<number, number>(userIds.map((id) => [id, 0]));
   const positionsByUser = new Map<number, number[]>(userIds.map((id) => [id, []]));
+  const top5ByMatch: ProgressionStanding[][] = [];
   for (const match of finished) {
     for (const id of userIds) cum.set(id, cum.get(id)! + (perMatch.get(`${id}:${match.id}`) ?? 0));
     for (const id of userIds) {
@@ -345,6 +349,15 @@ export async function getTopPlayersProgression(topN = 10): Promise<PointsProgres
       const rank = 1 + userIds.filter((other) => cum.get(other)! > mine).length;
       positionsByUser.get(id)!.push(rank);
     }
+    const ranked = [...userIds].sort(
+      (a, b) => cum.get(b)! - cum.get(a)! || names.get(a)!.localeCompare(names.get(b)!),
+    );
+    top5ByMatch.push(
+      ranked.slice(0, 5).map((id) => ({
+        username: names.get(id)!,
+        position: 1 + userIds.filter((other) => cum.get(other)! > cum.get(id)!).length,
+      })),
+    );
   }
 
   const lastIdx = finished.length - 1;
@@ -361,14 +374,15 @@ export async function getTopPlayersProgression(topN = 10): Promise<PointsProgres
     }))
     .sort((a, b) => a.finalPosition - b.finalPosition || a.username.localeCompare(b.username));
 
-  const timeline = finished.map((m) => ({
+  const timeline = finished.map((m, i) => ({
     ms: new Date(m.kickoffAt).getTime(),
     homeTeam: m.homeTeam,
     awayTeam: m.awayTeam,
     homeScore: m.homeScore,
     awayScore: m.awayScore,
+    top5: top5ByMatch[i],
   }));
-  return { timeline, series };
+  return { timeline, series, playerCount: userIds.length };
 }
 
 export async function upsertBet(

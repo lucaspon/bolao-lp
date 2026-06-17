@@ -55,15 +55,17 @@ export function PointsChart({
   const plotW = W - padL - padR;
   const plotH = H - padT - padB;
   const n = timeline.length;
-  const maxRank = Math.max(2, ...series.flatMap((s) => s.positions));
+  const lastRank = Math.max(2, progression.playerCount); // axis spans 1º → last place
   const x = (i: number) => padL + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW);
-  const y = (rank: number) => padT + ((rank - 1) / (maxRank - 1)) * plotH; // 1 → top
+  const y = (rank: number) => padT + ((rank - 1) / (lastRank - 1)) * plotH; // 1 → top
   const toPts = (positions: number[]) => positions.map((r, i) => ({ x: x(i), y: y(r) }));
   const band = n <= 1 ? plotW : plotW / (n - 1);
 
   // ~6 evenly-spaced match-number ticks, always including the first and last.
   const step = Math.max(1, Math.ceil(n / 6));
-  const ticks = [...new Set([...Array(n).keys()].filter((i) => i % step === 0).concat(n - 1))];
+  const xTicks = [...new Set([...Array(n).keys()].filter((i) => i % step === 0).concat(n - 1))];
+  // Position gridlines every 5 (1, 5, 10, …) plus the last place.
+  const yTicks = [...new Set([1, ...Array.from({ length: lastRank }, (_, i) => i + 1).filter((r) => r % 5 === 0), lastRank])];
 
   const hv = hover != null ? timeline[hover] : null;
 
@@ -71,15 +73,18 @@ export function PointsChart({
     <div className="mb-6 rounded-xl border border-line bg-panel p-3">
       <div className="mb-2 text-xs font-semibold text-mute">Posições do top 10</div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full sm:flex-1" role="img" aria-label="Evolução das posições do top 10">
-        {/* top (1º) and bottom (last) guide lines */}
-        <line x1={padL} y1={y(1)} x2={W - padR} y2={y(1)} stroke="var(--line)" strokeWidth={0.5} strokeDasharray="2 2" />
-        <line x1={padL} y1={y(maxRank)} x2={W - padR} y2={y(maxRank)} stroke="var(--line)" strokeWidth={0.5} />
-        <text x={padL - 3} y={y(1) + 3} textAnchor="end" fontSize="7" fill="var(--mute)">1º</text>
-        <text x={padL - 3} y={y(maxRank) + 3} textAnchor="end" fontSize="7" fill="var(--mute)">{maxRank}º</text>
+      <div className="relative w-full sm:flex-1">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Evolução das posições do top 10">
+        {/* position gridlines every 5 (1º → last) */}
+        {yTicks.map((r) => (
+          <g key={`y${r}`}>
+            <line x1={padL} y1={y(r)} x2={W - padR} y2={y(r)} stroke="var(--line)" strokeWidth={0.5} strokeDasharray={r === 1 ? "2 2" : undefined} opacity={0.6} />
+            <text x={padL - 3} y={y(r) + 3} textAnchor="end" fontSize="7" fill="var(--mute)">{r}º</text>
+          </g>
+        ))}
 
         {/* x-axis: match numbers */}
-        {ticks.map((i) => (
+        {xTicks.map((i) => (
           <text key={i} x={x(i)} y={H - 6} textAnchor="middle" fontSize="7" fill="var(--mute)">
             {i + 1}
           </text>
@@ -102,30 +107,13 @@ export function PointsChart({
                 strokeWidth={me ? 2.4 : 1.3}
                 strokeLinejoin="round"
                 strokeLinecap="round"
-                opacity={me ? 1 : 0.9}
+                opacity={0.75}
               />
-              <circle cx={last.x} cy={last.y} r={me ? 2.6 : 1.8} fill={color} />
+              <circle cx={last.x} cy={last.y} r={me ? 2.6 : 1.8} fill={color} opacity={0.75} />
               {hv && <circle cx={x(hover!)} cy={y(s.positions[hover!])} r={1.8} fill={color} />}
             </g>
           );
         })}
-
-        {/* hover tooltip */}
-        {hv && (() => {
-          const tw = 92, th = 22;
-          const tx = Math.min(Math.max(x(hover!) - tw / 2, padL), W - padR - tw);
-          return (
-            <g pointerEvents="none">
-              <rect x={tx} y={padT} width={tw} height={th} rx={3} fill="var(--panel-2)" stroke="var(--line)" strokeWidth={0.5} />
-              <text x={tx + 5} y={padT + 9} fontSize="7" fill="var(--mute)">
-                Jogo {hover! + 1} · {fmtDate(hv.ms)}
-              </text>
-              <text x={tx + 5} y={padT + 18} fontSize="8" fontWeight="bold" fill="var(--ink)">
-                {code(hv.homeTeam)} {hv.homeScore}–{hv.awayScore} {code(hv.awayTeam)}
-              </text>
-            </g>
-          );
-        })()}
 
         {/* transparent hit areas, one per match */}
         {timeline.map((_, i) => (
@@ -141,6 +129,30 @@ export function PointsChart({
           />
         ))}
       </svg>
+        {hv && (
+          <div
+            className="pointer-events-none absolute top-1 z-10 w-40 -translate-x-1/2 rounded-md border border-line bg-panel2 px-2 py-1.5 text-[10px] shadow-lg shadow-black/50"
+            style={{ left: `${Math.min(82, Math.max(18, (x(hover!) / W) * 100))}%` }}
+          >
+            <div className="font-semibold text-mute">
+              Jogo {hover! + 1} · {fmtDate(hv.ms)}
+            </div>
+            <div className="font-bold text-ink">
+              {code(hv.homeTeam)} {hv.homeScore}–{hv.awayScore} {code(hv.awayTeam)}
+            </div>
+            <div className="mt-1 flex flex-col gap-0.5 border-t border-line pt-1">
+              {hv.top5.map((s, i) => (
+                <div key={i} className="flex items-center gap-1.5">
+                  <span className="tabular w-4 shrink-0 text-mute">{s.position}º</span>
+                  <span className="truncate text-ink">
+                    {s.username === "Claude AI" ? "🤖 Claude AI" : s.username}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
       <div className="flex flex-col gap-1 text-[11px] sm:w-44 sm:shrink-0">
         {series.map((s, idx) => (
           <span key={s.userId} className="flex items-center gap-1.5">
