@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { syncMatches } from "@/lib/sync";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 // Pulls live results from football-data.org. Called by the Vercel cron (which
 // sends `Authorization: Bearer <CRON_SECRET>`) or manually with the same secret.

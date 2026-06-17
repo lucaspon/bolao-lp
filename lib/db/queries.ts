@@ -345,25 +345,34 @@ export async function hasUnscoredBets(matchId: number): Promise<boolean> {
   return row.n > 0;
 }
 
-// Recomputes points for every bet on a match. Used by the admin result entry
-// and the live-results sync.
+// The set of match ids that have any unscored bet — one query, so the sync can
+// decide rescoring for all matches without a per-match round-trip.
+export async function getUnscoredMatchIds(): Promise<Set<number>> {
+  const rows = await db
+    .selectDistinct({ matchId: bets.matchId })
+    .from(bets)
+    .where(isNull(bets.points));
+  return new Set(rows.map((row) => row.matchId));
+}
+
+// Recomputes points for every bet on a match in a SINGLE statement: +3 exact,
+// +1 right result, 0 otherwise, times the match's stage/Brazil multiplier. Used
+// by the admin result entry and the sync. (A per-bet loop here was the cause of
+// /api/sync timing out as finished matches accumulated.)
 export async function rescoreMatch(
   matchId: number,
   homeScore: number,
   awayScore: number,
 ): Promise<void> {
-  await db.transaction(async (tx) => {
-    const [match] = await tx
-      .select({ multiplier: matches.pointsMultiplier })
-      .from(matches)
-      .where(eq(matches.id, matchId));
-    const multiplier = match?.multiplier ?? 1;
-    const matchBets = await tx.select().from(bets).where(eq(bets.matchId, matchId));
-    for (const bet of matchBets) {
-      const points = scoreBet(bet.homePred, bet.awayPred, homeScore, awayScore) * multiplier;
-      await tx.update(bets).set({ points }).where(eq(bets.id, bet.id));
-    }
-  });
+  await db
+    .update(bets)
+    .set({
+      points: sql`(case
+        when ${bets.homePred} = ${homeScore} and ${bets.awayPred} = ${awayScore} then 3
+        when sign(${bets.homePred} - ${bets.awayPred}) = sign(${homeScore}::int - ${awayScore}::int) then 1
+        else 0 end) * coalesce((select ${matches.pointsMultiplier} from ${matches} where ${matches.id} = ${matchId}), 1)`,
+    })
+    .where(eq(bets.matchId, matchId));
 }
 
 // Creates the user on first login; refreshes admin status from env on each login.

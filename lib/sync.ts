@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "./db/client";
 import { matches, type Stage, type MatchStatus } from "./db/schema";
-import { rescoreMatch, hasUnscoredBets } from "./db/queries";
+import { rescoreMatch, getUnscoredMatchIds } from "./db/queries";
 import { matchPointsMultiplier } from "./match";
 import { TEAMS } from "./teams";
 
@@ -89,9 +89,24 @@ export async function syncMatches(): Promise<SyncResult> {
   const apiMatches = await fetchWcMatches();
   const result: SyncResult = { total: 0, live: 0, finished: 0, rescored: 0 };
 
-  for (const apiMatch of apiMatches) {
+  // Prefetch current scores + which matches have unscored bets, so we only
+  // rescore a finished match when its score actually changed (or bets are still
+  // unscored) — not every finished match every run, which timed the sync out.
+  const existing = await db
+    .select({
+      apiMatchId: matches.apiMatchId,
+      homeScore: matches.homeScore,
+      awayScore: matches.awayScore,
+    })
+    .from(matches);
+  const oldByApiId = new Map(
+    existing.map((m) => [m.apiMatchId, { homeScore: m.homeScore, awayScore: m.awayScore }]),
+  );
+  const unscoredMatchIds = await getUnscoredMatchIds();
+
+  const processMatch = async (apiMatch: ApiMatch) => {
     const stage = STAGE_MAP[apiMatch.stage];
-    if (!stage) continue;
+    if (!stage) return;
 
     const status = mapStatus(apiMatch.status);
     const { home, away } = apiMatch.score.fullTime;
@@ -159,12 +174,22 @@ export async function syncMatches(): Promise<SyncResult> {
     // bets stay unscored and the official leaderboard reads 0.
     if (saved.status === "finished" && saved.homeScore !== null && saved.awayScore !== null) {
       result.finished += 1;
-      const freshScore = status === "finished" && homeScore !== null && awayScore !== null;
-      if (freshScore || (await hasUnscoredBets(saved.id))) {
+      const old = oldByApiId.get(apiMatch.id);
+      const scoreChanged =
+        !old || old.homeScore !== saved.homeScore || old.awayScore !== saved.awayScore;
+      if (scoreChanged || unscoredMatchIds.has(saved.id)) {
         await rescoreMatch(saved.id, saved.homeScore, saved.awayScore);
         result.rescored += 1;
       }
     }
+  };
+
+  // Upserts are independent rows, so run them concurrently in small batches —
+  // the transaction pooler multiplexes (max:10), turning ~100 sequential
+  // round-trips (which timed the function out) into a handful of parallel waves.
+  const CONCURRENCY = 8;
+  for (let i = 0; i < apiMatches.length; i += CONCURRENCY) {
+    await Promise.all(apiMatches.slice(i, i + CONCURRENCY).map(processMatch));
   }
 
   return result;
