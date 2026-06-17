@@ -178,8 +178,6 @@ export function LeaderboardView({
         </p>
       )}
 
-      <PointsChart progression={progression} meId={meId} />
-
       {top.length > 0 ? (
         <Podium top={top} meId={meId} metric={view} />
       ) : (
@@ -187,6 +185,8 @@ export function LeaderboardView({
           Sem pontos ainda — a classificação ganha vida quando os jogos começam.
         </p>
       )}
+
+      <PointsChart progression={progression} meId={meId} />
 
       <div className="overflow-x-auto rounded-2xl border border-line">
         <table className="w-full text-sm">
@@ -240,9 +240,8 @@ export function LeaderboardView({
                             "flex items-center text-[10px] font-bold",
                             delta > 0 ? "text-neon" : "text-danger",
                           )}
-                          title={`${delta > 0 ? "subiu" : "caiu"} ${Math.abs(delta)} ${
-                            Math.abs(delta) === 1 ? "posição" : "posições"
-                          } na prévia`}
+                          title={`${delta > 0 ? "subiu" : "caiu"} ${Math.abs(delta)} ${Math.abs(delta) === 1 ? "posição" : "posições"
+                            } na prévia`}
                         >
                           {delta > 0 ? <ArrowUp size={11} /> : <ArrowDown size={11} />}
                           {Math.abs(delta) > 1 && Math.abs(delta)}
