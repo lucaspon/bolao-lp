@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getTeam } from "@/lib/teams";
 import { HoverTip } from "@/components/hover-tip";
@@ -117,6 +118,14 @@ export function LeaderboardView({
   const rankOf = (row: LeaderRow) => 1 + sorted.filter((r) => value(r) > value(row)).length;
   const qualifies = (row: LeaderRow) => value(row) > 0 && rankOf(row) <= 3;
 
+  // In the Prévia view, how the in-play games shift a player vs the official
+  // standing: positive = climbing (better live rank than official), negative =
+  // dropping. Competition rank by each metric, independent of the current sort.
+  const rankByMetric = (row: LeaderRow, m: "livePoints" | "points") =>
+    1 + rows.filter((r) => r[m] > row[m]).length;
+  const liveDelta = (row: LeaderRow) =>
+    rankByMetric(row, "points") - rankByMetric(row, "livePoints");
+
   const payouts = computePayouts(rows, potCents, metric);
 
   const maxPoints = concluded * 3;
@@ -198,6 +207,7 @@ export function LeaderboardView({
               const rank = rankOf(row);
               const myScored = scoredBets[row.userId] ?? [];
               const nameColor = isMe ? "text-neon" : gold ? "text-gold" : "text-ink";
+              const delta = view === "live" && hasLive ? liveDelta(row) : 0;
               return (
                 <tr
                   key={row.userId}
@@ -212,12 +222,28 @@ export function LeaderboardView({
                           : "",
                   )}
                 >
-                  <td className="tabular px-3 py-2.5 text-center">
-                    {gold ? (
-                      <span className="text-base">{MEDALS[rank - 1]}</span>
-                    ) : (
-                      <span className="text-mute">{index + 1}</span>
-                    )}
+                  <td className="tabular px-3 py-2.5">
+                    <div className="flex items-center justify-center gap-1">
+                      {gold ? (
+                        <span className="text-base">{MEDALS[rank - 1]}</span>
+                      ) : (
+                        <span className="text-mute">{index + 1}</span>
+                      )}
+                      {delta !== 0 && (
+                        <span
+                          className={cn(
+                            "flex items-center text-[10px] font-bold",
+                            delta > 0 ? "text-neon" : "text-danger",
+                          )}
+                          title={`${delta > 0 ? "subiu" : "caiu"} ${Math.abs(delta)} ${
+                            Math.abs(delta) === 1 ? "posição" : "posições"
+                          } na prévia`}
+                        >
+                          {delta > 0 ? <ArrowUp size={11} /> : <ArrowDown size={11} />}
+                          {Math.abs(delta) > 1 && Math.abs(delta)}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-3 py-2.5 font-medium">
                     <HoverTip

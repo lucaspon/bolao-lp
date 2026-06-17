@@ -278,6 +278,66 @@ export async function getScoredBetsByUser(): Promise<Record<number, ScoredBet[]>
   return byUser;
 }
 
+// Cumulative points for the current top-N players across the finished-match
+// timeline — powers the leaderboard evolution chart. Each series' `cumulative[i]`
+// is that player's total official points after the i-th finished match.
+export type ProgressionSeries = {
+  userId: number;
+  username: string;
+  cumulative: number[];
+  total: number;
+};
+export type PointsProgression = {
+  timeline: { ms: number }[];
+  series: ProgressionSeries[];
+};
+
+export async function getTopPlayersProgression(topN = 10): Promise<PointsProgression> {
+  const finished = await db
+    .select({ id: matches.id, kickoffAt: matches.kickoffAt })
+    .from(matches)
+    .where(eq(matches.status, "finished"))
+    .orderBy(asc(matches.kickoffAt));
+  if (finished.length === 0) return { timeline: [], series: [] };
+
+  const rows = await db
+    .select({
+      userId: users.id,
+      username: users.username,
+      matchId: bets.matchId,
+      points: bets.points,
+    })
+    .from(bets)
+    .innerJoin(matches, eq(matches.id, bets.matchId))
+    .innerJoin(users, eq(users.id, bets.userId))
+    .where(and(eq(matches.status, "finished"), isNotNull(bets.points)));
+
+  const totals = new Map<number, number>();
+  const names = new Map<number, string>();
+  const perMatch = new Map<string, number>(); // `${userId}:${matchId}` -> points
+  for (const row of rows) {
+    names.set(row.userId, row.username);
+    totals.set(row.userId, (totals.get(row.userId) ?? 0) + (row.points ?? 0));
+    perMatch.set(`${row.userId}:${row.matchId}`, row.points ?? 0);
+  }
+
+  const topIds = [...totals.entries()]
+    .sort((a, b) => b[1] - a[1] || names.get(a[0])!.localeCompare(names.get(b[0])!))
+    .slice(0, topN)
+    .map(([id]) => id);
+
+  const series: ProgressionSeries[] = topIds.map((userId) => {
+    let cum = 0;
+    const cumulative = finished.map((m) => {
+      cum += perMatch.get(`${userId}:${m.id}`) ?? 0;
+      return cum;
+    });
+    return { userId, username: names.get(userId)!, cumulative, total: cum };
+  });
+
+  return { timeline: finished.map((m) => ({ ms: new Date(m.kickoffAt).getTime() })), series };
+}
+
 export async function upsertBet(
   userId: number,
   matchId: number,
