@@ -6,7 +6,7 @@ import {
   getPotTotalCents,
   getRecentResults,
   getScoredBetsByUser,
-  getTopPlayersProgression,
+  getPointsProgression,
 } from "@/lib/db/queries";
 import { LeaderboardView } from "@/components/leaderboard-view";
 import { ResultsFeed } from "@/components/results-feed";
@@ -23,7 +23,7 @@ export default async function LeaderboardPage() {
       getPotTotalCents(),
       getRecentResults(),
       getScoredBetsByUser(),
-      getTopPlayersProgression(),
+      getPointsProgression(),
     ]);
 
   return (

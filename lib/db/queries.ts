@@ -278,14 +278,16 @@ export async function getScoredBetsByUser(): Promise<Record<number, ScoredBet[]>
   return byUser;
 }
 
-// Leaderboard POSITION of the current top-N players across the finished-match
-// timeline — a "bump chart". `positions[i]` is that player's competition rank
-// (1 = top, among all players with bets) after the i-th finished match.
+// Cumulative points for EVERY player across the finished-match timeline.
+// `cumulative[i]` is that player's running total after the i-th finished match.
+// Series are sorted by final total (leader first) so the chart can colour the
+// top 5. The timeline carries each match's result + top-5 standings (for the
+// hover tooltip).
 export type ProgressionSeries = {
   userId: number;
   username: string;
-  positions: number[];
-  finalPosition: number;
+  cumulative: number[];
+  total: number;
 };
 export type ProgressionStanding = { username: string; position: number };
 export type ProgressionMatch = {
@@ -299,10 +301,9 @@ export type ProgressionMatch = {
 export type PointsProgression = {
   timeline: ProgressionMatch[];
   series: ProgressionSeries[];
-  playerCount: number; // total ranked players (= last possible position)
 };
 
-export async function getTopPlayersProgression(topN = 10): Promise<PointsProgression> {
+export async function getPointsProgression(): Promise<PointsProgression> {
   const finished = await db
     .select({
       id: matches.id,
@@ -315,7 +316,7 @@ export async function getTopPlayersProgression(topN = 10): Promise<PointsProgres
     .from(matches)
     .where(eq(matches.status, "finished"))
     .orderBy(asc(matches.kickoffAt));
-  if (finished.length === 0) return { timeline: [], series: [], playerCount: 0 };
+  if (finished.length === 0) return { timeline: [], series: [] };
 
   const rows = await db
     .select({
@@ -337,18 +338,13 @@ export async function getTopPlayersProgression(topN = 10): Promise<PointsProgres
   }
   const userIds = [...names.keys()];
 
-  // Walk the timeline, accumulating points and recording everyone's rank after
-  // each match (competition rank: 1 + how many score strictly higher).
+  // Walk the timeline, accumulating points per player and the top-5 standings.
   const cum = new Map<number, number>(userIds.map((id) => [id, 0]));
-  const positionsByUser = new Map<number, number[]>(userIds.map((id) => [id, []]));
+  const cumByUser = new Map<number, number[]>(userIds.map((id) => [id, []]));
   const top5ByMatch: ProgressionStanding[][] = [];
   for (const match of finished) {
     for (const id of userIds) cum.set(id, cum.get(id)! + (perMatch.get(`${id}:${match.id}`) ?? 0));
-    for (const id of userIds) {
-      const mine = cum.get(id)!;
-      const rank = 1 + userIds.filter((other) => cum.get(other)! > mine).length;
-      positionsByUser.get(id)!.push(rank);
-    }
+    for (const id of userIds) cumByUser.get(id)!.push(cum.get(id)!);
     const ranked = [...userIds].sort(
       (a, b) => cum.get(b)! - cum.get(a)! || names.get(a)!.localeCompare(names.get(b)!),
     );
@@ -360,19 +356,14 @@ export async function getTopPlayersProgression(topN = 10): Promise<PointsProgres
     );
   }
 
-  const lastIdx = finished.length - 1;
-  const topIds = [...userIds]
-    .sort((a, b) => cum.get(b)! - cum.get(a)! || names.get(a)!.localeCompare(names.get(b)!))
-    .slice(0, topN);
-
-  const series: ProgressionSeries[] = topIds
+  const series: ProgressionSeries[] = userIds
     .map((userId) => ({
       userId,
       username: names.get(userId)!,
-      positions: positionsByUser.get(userId)!,
-      finalPosition: positionsByUser.get(userId)![lastIdx],
+      cumulative: cumByUser.get(userId)!,
+      total: cum.get(userId)!,
     }))
-    .sort((a, b) => a.finalPosition - b.finalPosition || a.username.localeCompare(b.username));
+    .sort((a, b) => b.total - a.total || a.username.localeCompare(b.username));
 
   const timeline = finished.map((m, i) => ({
     ms: new Date(m.kickoffAt).getTime(),
@@ -382,7 +373,7 @@ export async function getTopPlayersProgression(topN = 10): Promise<PointsProgres
     awayScore: m.awayScore,
     top5: top5ByMatch[i],
   }));
-  return { timeline, series, playerCount: userIds.length };
+  return { timeline, series };
 }
 
 export async function upsertBet(
