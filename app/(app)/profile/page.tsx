@@ -1,7 +1,14 @@
+import { headers } from "next/headers";
 import { requireUser } from "@/lib/auth/session";
-import { getMatchesForUser, getUserStakeCents, getStakingBounds } from "@/lib/db/queries";
+import {
+  getMatchesForUser,
+  getUserStakeCents,
+  getStakingBounds,
+  getOrCreateApiToken,
+} from "@/lib/db/queries";
 import { MatchCard } from "@/components/match-card";
 import { PayEntry } from "@/components/pay-entry";
+import { ApiAccess } from "@/components/api-access";
 import { scoreBet } from "@/lib/scoring";
 import { stakingWindow } from "@/lib/staking";
 
@@ -18,11 +25,14 @@ function Stat({ value, label }: { value: number | string; label: string }) {
 
 export default async function ProfilePage() {
   const user = await requireUser();
-  const [all, stakeCents, bounds] = await Promise.all([
+  const [all, stakeCents, bounds, apiToken, headerList] = await Promise.all([
     getMatchesForUser(user.id),
     getUserStakeCents(user.id),
     getStakingBounds(),
+    getOrCreateApiToken(user.id),
+    headers(),
   ]);
+  const baseUrl = `${headerList.get("x-forwarded-proto") ?? "https"}://${headerList.get("host")}`;
   const myPicks = all.filter((match) => match.bet);
   const window = stakingWindow(bounds);
 
@@ -61,6 +71,10 @@ export default async function ProfilePage() {
         <Stat value={exact} label="cravadas" />
         <Stat value={correct} label="resultados" />
         <Stat value={accuracy === null ? "–" : `${accuracy}%`} label="precisão" />
+      </div>
+
+      <div className="mb-7">
+        <ApiAccess token={apiToken} baseUrl={baseUrl} />
       </div>
 
       {myPicks.length === 0 ? (

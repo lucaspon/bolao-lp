@@ -43,6 +43,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   username: text("username").notNull(),
   isAdmin: boolean("is_admin").notNull().default(false),
+  apiToken: text("api_token").unique(), // personal bearer token for the bets API
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

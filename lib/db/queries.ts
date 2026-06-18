@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, ne, isNull, isNotNull, inArray, sql, type SQL } from "drizzle-orm";
+import { randomBytes } from "node:crypto";
 import { db } from "./client";
 import {
   users,
@@ -492,6 +493,23 @@ export async function upsertUser(email: string): Promise<User> {
 
 export async function getUserById(id: number): Promise<User | null> {
   const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+// ---- Bets API token ---------------------------------------------------------
+
+// Returns the user's personal API token, minting one on first use.
+export async function getOrCreateApiToken(userId: number): Promise<string> {
+  const [row] = await db.select({ token: users.apiToken }).from(users).where(eq(users.id, userId));
+  if (row?.token) return row.token;
+  const token = `blp_${randomBytes(24).toString("hex")}`;
+  await db.update(users).set({ apiToken: token }).where(eq(users.id, userId));
+  return token;
+}
+
+export async function getUserByApiToken(token: string): Promise<User | null> {
+  if (!token) return null;
+  const rows = await db.select().from(users).where(eq(users.apiToken, token)).limit(1);
   return rows[0] ?? null;
 }
 
