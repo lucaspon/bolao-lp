@@ -51,13 +51,24 @@ function GroupStage({ matches }: { matches: MatchWithBet[] }) {
                 Group
               </span>
             </div>
-            {list.map((match, index) => (
-              <MatchPill
-                key={match.id}
-                match={toPill(match)}
-                className={index > 0 && index % 2 === 0 ? "mt-0" : undefined}
-              />
-            ))}
+            {/* The 6 matches split into the 3 group-stage rounds (2 each, in
+                kickoff order), divided so each matchday reads as its own block. */}
+            {[0, 2, 4]
+              .map((start) => list.slice(start, start + 2))
+              .filter((round) => round.length > 0)
+              .map((round, roundIndex) => (
+                <div
+                  key={roundIndex}
+                  className={
+                    "flex flex-col gap-2" +
+                    (roundIndex > 0 ? " mt-1 border-t border-line/60 pt-3" : "")
+                  }
+                >
+                  {round.map((match) => (
+                    <MatchPill key={match.id} match={toPill(match)} />
+                  ))}
+                </div>
+              ))}
           </div>
         );
       })}
