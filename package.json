@@ -16,6 +16,7 @@
     "db:sync": "doppler run -- tsx scripts/sync.ts"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "drizzle-orm": "^0.45.2",
     "jose": "^6.2.3",
     "lucide-react": "^1.17.0",
