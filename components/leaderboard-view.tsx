@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ArrowUp, ArrowDown } from "lucide-react";
+import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
 import { getTeam } from "@/lib/teams";
 import { HoverTip } from "@/components/hover-tip";
@@ -35,6 +36,35 @@ type View = "official" | "live";
 
 const brl = (cents: number) => `R$${(cents / 100).toFixed(0)}`;
 
+// Theme colours as hex (recharts sets SVG fill attributes, which don't resolve
+// CSS var()).
+const C = { gold: "#ffd24a", green: "#34e27a", gray: "#8a92a8", line: "#242a3b", panel2: "#171b29", ink: "#e9ecf5" };
+
+function trunc(s: string) {
+  return s.length > 16 ? s.slice(0, 15) + "…" : s;
+}
+
+// Rotated x-axis label, gold + bold for the logged-in user.
+function UserTick(props: { x?: number; y?: number; payload?: { value: string }; meName?: string }) {
+  const { x = 0, y = 0, payload, meName } = props;
+  const name = payload?.value ?? "";
+  const me = name === meName;
+  return (
+    <text
+      x={x}
+      y={y}
+      dy={3}
+      textAnchor="end"
+      transform={`rotate(-90, ${x}, ${y})`}
+      fontSize={9}
+      fill={me ? C.gold : C.gray}
+      fontWeight={me ? 700 : 400}
+    >
+      {trunc(name)}
+    </text>
+  );
+}
+
 // Current points of every player as vertical bars (y = points, x = usernames
 // rotated 90°). Top 3 green, the logged-in user gold, everyone else gray.
 function PointsBarChart({
@@ -59,69 +89,54 @@ function PointsBarChart({
     );
   }
   const rankOf = (row: LeaderRow) => 1 + sorted.filter((r) => value(r) > value(row)).length;
+  const meName = rows.find((r) => r.userId === meId)?.username;
+  const display = (name: string) => (name === "Claude AI" ? "🤖 Claude AI" : name);
 
-  const N = sorted.length;
-  const BAR = 16, barW = 10, padL = 24, padR = 6, padT = 12, plotH = 150, labelH = 86;
-  const chartW = padL + N * BAR + padR;
-  const chartH = padT + plotH + labelH;
-  const xc = (i: number) => padL + i * BAR + BAR / 2;
-  const yTop = (v: number) => padT + plotH - (v / maxV) * plotH;
-  const yTicks = [0, Math.round(maxV / 2), maxV];
-  const trunc = (s: string) => (s.length > 14 ? s.slice(0, 13) + "…" : s);
-  const colorOf = (row: LeaderRow) =>
-    row.userId === meId ? "var(--gold)" : rankOf(row) <= 3 ? "var(--neon)" : "var(--mute)";
-  const opacityOf = (row: LeaderRow) =>
-    row.userId === meId ? 1 : rankOf(row) <= 3 ? 0.9 : 0.35;
+  const data = sorted.map((row) => {
+    const me = row.userId === meId;
+    const top3 = rankOf(row) <= 3;
+    return {
+      name: display(row.username),
+      value: value(row),
+      fill: me ? C.gold : top3 ? C.green : C.gray,
+      opacity: me ? 1 : top3 ? 0.9 : 0.4,
+    };
+  });
+  const meDisplay = meName ? display(meName) : undefined;
 
   return (
-    <div className="mb-6 overflow-x-auto rounded-2xl border border-line bg-panel p-3">
-      <svg
-        viewBox={`0 0 ${chartW} ${chartH}`}
-        preserveAspectRatio="none"
-        className="block w-full"
-        style={{ minWidth: `${N * 14}px`, height: `${chartH}px` }}
-        role="img"
-        aria-label="Pontos por jogador"
-      >
-        <text x={2} y={padT - 4} fontSize="8" fill="var(--mute)">pts</text>
-        {yTicks.map((v) => (
-          <g key={v}>
-            <line x1={padL} y1={yTop(v)} x2={chartW - padR} y2={yTop(v)} stroke="var(--line)" strokeWidth={0.5} opacity={0.6} />
-            <text x={padL - 4} y={yTop(v) + 3} textAnchor="end" fontSize="8" fill="var(--mute)">{v}</text>
-          </g>
-        ))}
-        {sorted.map((row, i) => {
-          const cx = xc(i);
-          const top = yTop(value(row));
-          const labelY = padT + plotH + 6;
-          const me = row.userId === meId;
-          return (
-            <g key={row.userId}>
-              <rect
-                x={cx - barW / 2}
-                y={top}
-                width={barW}
-                height={padT + plotH - top}
-                rx={1.5}
-                fill={colorOf(row)}
-                opacity={opacityOf(row)}
-              />
-              <text
-                x={cx}
-                y={labelY}
-                transform={`rotate(-90 ${cx} ${labelY})`}
-                textAnchor="end"
-                fontSize="7"
-                fill={me ? "var(--gold)" : "var(--ink)"}
-                fontWeight={me ? "bold" : "normal"}
-                opacity={me || rankOf(row) <= 3 ? 1 : 0.65}
-              >
-                {row.username === "Claude AI" ? "🤖 Claude AI" : trunc(row.username)}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+    <div className="mb-6 rounded-2xl border border-line bg-panel p-3">
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={data} margin={{ top: 10, right: 6, bottom: 0, left: -8 }}>
+          <YAxis
+            allowDecimals={false}
+            width={34}
+            tick={{ fontSize: 10, fill: C.gray }}
+            axisLine={false}
+            tickLine={false}
+            label={{ value: "pts", angle: -90, position: "insideLeft", fontSize: 10, fill: C.gray }}
+          />
+          <XAxis
+            dataKey="name"
+            interval={0}
+            height={84}
+            tickLine={false}
+            axisLine={{ stroke: C.line }}
+            tick={<UserTick meName={meDisplay} />}
+          />
+          <Tooltip
+            cursor={{ fill: "rgba(255,255,255,0.05)" }}
+            contentStyle={{ background: C.panel2, border: `1px solid ${C.line}`, borderRadius: 8, fontSize: 12 }}
+            labelStyle={{ color: C.ink }}
+            formatter={(v) => [v, "pts"]}
+          />
+          <Bar dataKey="value" radius={[2, 2, 0, 0]} isAnimationActive={false}>
+            {data.map((d, i) => (
+              <Cell key={i} fill={d.fill} fillOpacity={d.opacity} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }
