@@ -35,51 +35,86 @@ type View = "official" | "live";
 
 const brl = (cents: number) => `R$${(cents / 100).toFixed(0)}`;
 
-function Podium({
-  top,
+// Current points of every player as vertical bars (y = points, x = usernames
+// rotated 90°). Top 3 green, the logged-in user gold, everyone else gray.
+function PointsBarChart({
+  rows,
   meId,
   metric,
 }: {
-  top: LeaderRow[];
+  rows: LeaderRow[];
   meId: number;
-  metric: View;
+  metric: "livePoints" | "points";
 }) {
-  const value = (row: LeaderRow) => (metric === "live" ? row.livePoints : row.points);
-  const ranked = top.map((row, index) => ({ row, place: index + 1 }));
-  const order = [ranked[1], ranked[0], ranked[2]].filter(Boolean);
-  const heights: Record<number, number> = { 1: 116, 2: 88, 3: 70 };
+  const value = (row: LeaderRow) => row[metric];
+  const sorted = [...rows].sort(
+    (a, b) => value(b) - value(a) || a.username.localeCompare(b.username),
+  );
+  const maxV = Math.max(0, ...sorted.map(value));
+  if (maxV <= 0) {
+    return (
+      <p className="mb-6 rounded-xl border border-line bg-panel p-4 text-sm text-mute">
+        Sem pontos ainda — a classificação ganha vida quando os jogos começam.
+      </p>
+    );
+  }
+  const rankOf = (row: LeaderRow) => 1 + sorted.filter((r) => value(r) > value(row)).length;
+
+  const N = sorted.length;
+  const BAR = 16, barW = 10, padL = 24, padR = 6, padT = 12, plotH = 150, labelH = 86;
+  const chartW = padL + N * BAR + padR;
+  const chartH = padT + plotH + labelH;
+  const xc = (i: number) => padL + i * BAR + BAR / 2;
+  const yTop = (v: number) => padT + plotH - (v / maxV) * plotH;
+  const yTicks = [0, Math.round(maxV / 2), maxV];
+  const trunc = (s: string) => (s.length > 14 ? s.slice(0, 13) + "…" : s);
+  const colorOf = (row: LeaderRow) =>
+    row.userId === meId ? "var(--gold)" : rankOf(row) <= 3 ? "var(--neon)" : "var(--mute)";
+  const opacityOf = (row: LeaderRow) =>
+    row.userId === meId ? 1 : rankOf(row) <= 3 ? 0.9 : 0.35;
 
   return (
-    <div className="mb-8 flex items-end justify-center gap-3">
-      {order.map(({ row, place }) => (
-        <div key={row.userId} className="flex w-24 flex-col items-center">
-          <div className="mb-1 text-2xl">{MEDALS[place - 1]}</div>
-          <div
-            className={cn(
-              "truncate text-sm font-semibold",
-              row.userId === meId ? "text-neon" : "text-ink",
-            )}
-          >
-            {row.username === "Claude AI" ? (
-              <>🤖 <span className="font-mono">{row.username}</span></>
-            ) : row.username}
-          </div>
-          <div
-            className={cn(
-              "tabular mb-2 font-display text-lg font-bold",
-              metric === "live" ? "text-danger" : "text-gold",
-            )}
-          >
-            {value(row)}
-          </div>
-          <div
-            className="flex w-full items-center justify-center rounded-t-lg border border-line bg-panel font-display text-2xl font-bold text-mute"
-            style={{ height: heights[place] }}
-          >
-            {place}
-          </div>
-        </div>
-      ))}
+    <div className="mb-6 overflow-x-auto rounded-2xl border border-line bg-panel p-3">
+      <svg width={chartW} height={chartH} className="block" role="img" aria-label="Pontos por jogador">
+        <text x={2} y={padT - 4} fontSize="8" fill="var(--mute)">pts</text>
+        {yTicks.map((v) => (
+          <g key={v}>
+            <line x1={padL} y1={yTop(v)} x2={chartW - padR} y2={yTop(v)} stroke="var(--line)" strokeWidth={0.5} opacity={0.6} />
+            <text x={padL - 4} y={yTop(v) + 3} textAnchor="end" fontSize="8" fill="var(--mute)">{v}</text>
+          </g>
+        ))}
+        {sorted.map((row, i) => {
+          const cx = xc(i);
+          const top = yTop(value(row));
+          const labelY = padT + plotH + 6;
+          const me = row.userId === meId;
+          return (
+            <g key={row.userId}>
+              <rect
+                x={cx - barW / 2}
+                y={top}
+                width={barW}
+                height={padT + plotH - top}
+                rx={1.5}
+                fill={colorOf(row)}
+                opacity={opacityOf(row)}
+              />
+              <text
+                x={cx}
+                y={labelY}
+                transform={`rotate(-90 ${cx} ${labelY})`}
+                textAnchor="end"
+                fontSize="7"
+                fill={me ? "var(--gold)" : "var(--ink)"}
+                fontWeight={me ? "bold" : "normal"}
+                opacity={me || rankOf(row) <= 3 ? 1 : 0.65}
+              >
+                {row.username === "Claude AI" ? "🤖 Claude AI" : trunc(row.username)}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 }
@@ -113,7 +148,6 @@ export function LeaderboardView({
       b.exact - a.exact ||
       a.username.localeCompare(b.username),
   );
-  const top = sorted.filter((row) => value(row) > 0).slice(0, 3);
 
   // Competition rank: 1 + how many score strictly higher. A player qualifies (and
   // goes gold) when their rank is ≤ 3 — so literal ties at the boundary widen the
@@ -178,13 +212,7 @@ export function LeaderboardView({
         </p>
       )}
 
-      {top.length > 0 ? (
-        <Podium top={top} meId={meId} metric={view} />
-      ) : (
-        <p className="mb-6 rounded-xl border border-line bg-panel p-4 text-sm text-mute">
-          Sem pontos ainda — a classificação ganha vida quando os jogos começam.
-        </p>
-      )}
+      <PointsBarChart rows={rows} meId={meId} metric={metric} />
 
       <PointsChart progression={progression} meId={meId} />
 

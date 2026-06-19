@@ -1,5 +1,5 @@
 import { db } from "./db/client";
-import { matches, type Match } from "./db/schema";
+import { matches } from "./db/schema";
 import { setMatchVenueIfMissing } from "./db/queries";
 import { venueLabel } from "./venues";
 import {
