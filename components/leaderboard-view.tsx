@@ -75,7 +75,14 @@ function PointsBarChart({
 
   return (
     <div className="mb-6 overflow-x-auto rounded-2xl border border-line bg-panel p-3">
-      <svg width={chartW} height={chartH} className="block" role="img" aria-label="Pontos por jogador">
+      <svg
+        viewBox={`0 0 ${chartW} ${chartH}`}
+        preserveAspectRatio="none"
+        className="block w-full"
+        style={{ minWidth: `${N * 14}px`, height: `${chartH}px` }}
+        role="img"
+        aria-label="Pontos por jogador"
+      >
         <text x={2} y={padT - 4} fontSize="8" fill="var(--mute)">pts</text>
         {yTicks.map((v) => (
           <g key={v}>
