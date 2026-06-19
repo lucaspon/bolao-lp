@@ -114,7 +114,6 @@ function PointsBarChart({
             tick={{ fontSize: 10, fill: C.gray }}
             axisLine={false}
             tickLine={false}
-            label={{ value: "pts", angle: -90, position: "insideLeft", fontSize: 10, fill: C.gray }}
           />
           <XAxis
             dataKey="name"
@@ -128,6 +127,7 @@ function PointsBarChart({
             cursor={{ fill: "rgba(255,255,255,0.05)" }}
             contentStyle={{ background: C.panel2, border: `1px solid ${C.line}`, borderRadius: 8, fontSize: 12 }}
             labelStyle={{ color: C.ink }}
+            itemStyle={{ color: C.ink }}
             formatter={(v) => [v, "pts"]}
           />
           <Bar dataKey="value" radius={[2, 2, 0, 0]} isAnimationActive={false}>
