@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await syncLiveScores();
-    if (result.updated > 0 || (result.finalized ?? 0) > 0) {
+    if (result.updated > 0) {
       revalidatePath("/matches");
       revalidatePath("/leaderboard");
       revalidatePath("/profile");

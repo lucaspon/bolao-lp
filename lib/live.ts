@@ -1,6 +1,6 @@
 import { db } from "./db/client";
 import { matches, type Match } from "./db/schema";
-import { applyLiveScore, setMatchVenueIfMissing, finalizeLiveMatch } from "./db/queries";
+import { applyLiveScore, setMatchVenueIfMissing } from "./db/queries";
 import { TEAMS } from "./teams";
 import { venueLabel } from "./venues";
 
@@ -141,16 +141,10 @@ export function indexByMinute(all: Match[]): Map<string, Match[]> {
   return byMinute;
 }
 
-// Earliest a match could possibly be over: 45 + 45 + half-time + stoppage. Below
-// this we never auto-finalize. Past it, absence from the live feed means full
-// time (a match still in extra time/penalties stays in the feed, so it's safe).
-const FINALIZE_AFTER_MIN = 105;
-
 export type LiveSyncResult = {
   polled: boolean;
   live: number;
   updated: number;
-  finalized?: number;
   intervalMin?: number;
   throttled?: boolean;
 };
@@ -187,7 +181,6 @@ export async function syncLiveScores(): Promise<LiveSyncResult> {
   const byMinute = indexByMinute(all);
 
   let updated = 0;
-  const liveIds = new Set<number>(); // DB matches the feed still reports as in-play
   for (const fixture of wc) {
     const match = resolveDbMatch(fixture, byMinute, codeOf);
     if (!match) {
@@ -196,7 +189,6 @@ export async function syncLiveScores(): Promise<LiveSyncResult> {
       );
       continue;
     }
-    liveIds.add(match.id);
     // Capture the venue for free from the live feed (fixed for the tournament).
     if (!match.venue) {
       const label = venueLabel(fixture.fixture.venue?.city);
@@ -208,17 +200,8 @@ export async function syncLiveScores(): Promise<LiveSyncResult> {
     updated += 1;
   }
 
-  // Finalize matches we had marked live that the feed no longer lists and that
-  // are past the earliest-possible full time — football-data flips to FINISHED
-  // slowly, so this makes the live→finished transition prompt. (football-data's
-  // sync still confirms the official score afterwards.)
-  let finalized = 0;
-  for (const match of all) {
-    if (match.status !== "live" || liveIds.has(match.id)) continue;
-    const minutesIn = (now - new Date(match.kickoffAt).getTime()) / MINUTE_MS;
-    if (minutesIn < FINALIZE_AFTER_MIN) continue;
-    if (await finalizeLiveMatch(match.id)) finalized += 1;
-  }
-
-  return { polled: true, live: wc.length, updated, finalized, intervalMin };
+  // NOTE: finalization is handled by /api/sync (football-data), which has the
+  // authoritative final score. Finalizing here from the last sampled live score
+  // risked locking a stale result when a goal landed between our polls.
+  return { polled: true, live: wc.length, updated, intervalMin };
 }
