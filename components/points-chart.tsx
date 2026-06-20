@@ -17,21 +17,42 @@ const code = (c: string | null) => getTeam(c)?.code ?? c ?? "?";
 
 type Pt = { x: number; y: number };
 
-// Catmull-Rom → cubic-bezier, for smooth lines through every point.
+// Monotone cubic interpolation (Fritsch–Carlson, à la d3 curveMonotoneX): smooth
+// but never overshoots the data points — so monotonic data (cumulative points)
+// stays monotonic, instead of the Catmull-Rom dips between flat-then-jump points.
 function smoothPath(pts: Pt[]): string {
-  if (pts.length === 0) return "";
-  if (pts.length === 1) return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+  const n = pts.length;
+  if (n === 0) return "";
+  if (n === 1) return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+  if (n === 2) return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)} L ${pts[1].x.toFixed(1)} ${pts[1].y.toFixed(1)}`;
+
+  const h: number[] = [];
+  const s: number[] = []; // secant slopes
+  for (let i = 0; i < n - 1; i++) {
+    h[i] = pts[i + 1].x - pts[i].x;
+    s[i] = (pts[i + 1].y - pts[i].y) / h[i];
+  }
+  // tangents: 0 at extrema/flats, weighted harmonic mean otherwise (monotone-safe)
+  const m: number[] = new Array(n);
+  m[0] = s[0];
+  m[n - 1] = s[n - 2];
+  for (let i = 1; i < n - 1; i++) {
+    if (s[i - 1] * s[i] <= 0) {
+      m[i] = 0;
+    } else {
+      const w1 = 2 * h[i] + h[i - 1];
+      const w2 = h[i] + 2 * h[i - 1];
+      m[i] = (w1 + w2) / (w1 / s[i - 1] + w2 / s[i]);
+    }
+  }
+
   let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[i - 1] ?? pts[i];
-    const p1 = pts[i];
-    const p2 = pts[i + 1];
-    const p3 = pts[i + 2] ?? p2;
-    const c1x = p1.x + (p2.x - p0.x) / 6;
-    const c1y = p1.y + (p2.y - p0.y) / 6;
-    const c2x = p2.x - (p3.x - p1.x) / 6;
-    const c2y = p2.y - (p3.y - p1.y) / 6;
-    d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const c1x = pts[i].x + h[i] / 3;
+    const c1y = pts[i].y + (m[i] * h[i]) / 3;
+    const c2x = pts[i + 1].x - h[i] / 3;
+    const c2y = pts[i + 1].y - (m[i + 1] * h[i]) / 3;
+    d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${pts[i + 1].x.toFixed(1)} ${pts[i + 1].y.toFixed(1)}`;
   }
   return d;
 }
