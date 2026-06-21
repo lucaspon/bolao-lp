@@ -35,7 +35,7 @@ export function Nav({
 
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-base/80 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 lg:max-w-[min(65vw,1500px)]">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 lg:max-w-[min(85vw,1500px)] 2xl:max-w-[min(65vw,1500px)]">
         <Link href="/matches" className="flex items-center gap-2">
           <Trophy className="text-neon" size={20} />
           <span className="font-display text-lg font-bold tracking-wide">
