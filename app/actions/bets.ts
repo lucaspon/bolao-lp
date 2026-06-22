@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth/session";
-import { getMatchById, upsertBet, deleteBet } from "@/lib/db/queries";
+import { getMatchById, getMatchBets, upsertBet, deleteBet, type MatchBet } from "@/lib/db/queries";
 import { canBet } from "@/lib/match";
 import type { ActionResult } from "@/lib/types";
 
@@ -53,4 +53,21 @@ export async function clearBetAction(matchId: number): Promise<ActionResult> {
   revalidatePath("/profile");
   revalidatePath("/leaderboard");
   return { ok: true };
+}
+
+// Everyone's palpites for a match — only once its betting has closed (locked /
+// in progress / finished), so we never reveal predictions while bets are open.
+export async function getMatchBetsAction(
+  matchId: number,
+): Promise<{ ok: boolean; error?: string; bets?: MatchBet[] }> {
+  const user = await getSession();
+  if (!user) return { ok: false, error: "Faça login novamente." };
+
+  const match = await getMatchById(matchId);
+  if (!match) return { ok: false, error: "Jogo não encontrado." };
+  if (canBet(match)) {
+    return { ok: false, error: "Os palpites deste jogo ainda estão abertos." };
+  }
+
+  return { ok: true, bets: await getMatchBets(matchId) };
 }

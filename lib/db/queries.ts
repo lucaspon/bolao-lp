@@ -377,6 +377,23 @@ export async function getPointsProgression(): Promise<PointsProgression> {
   return { timeline, series };
 }
 
+// Every player's prediction for one match (for the "ver palpites" modal).
+export type MatchBet = { userId: number; username: string; homePred: number; awayPred: number };
+
+export async function getMatchBets(matchId: number): Promise<MatchBet[]> {
+  return db
+    .select({
+      userId: users.id,
+      username: users.username,
+      homePred: bets.homePred,
+      awayPred: bets.awayPred,
+    })
+    .from(bets)
+    .innerJoin(users, eq(users.id, bets.userId))
+    .where(eq(bets.matchId, matchId))
+    .orderBy(asc(users.username));
+}
+
 export async function upsertBet(
   userId: number,
   matchId: number,

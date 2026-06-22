@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Target, Check } from "lucide-react";
+import { Target, Check, Eye } from "lucide-react";
 import { getTeam } from "@/lib/teams";
 import { STAGE_LABEL } from "@/lib/match";
+import { MatchBetsModal } from "@/components/match-bets-modal";
 import type { ResultFeedItem, ResultBettor } from "@/lib/db/queries";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +65,7 @@ function NameChips({
 function ResultCard({ item, meId }: { item: ResultFeedItem; meId: number }) {
   const exactPts = 3 * item.multiplier;
   const correctPts = 1 * item.multiplier;
+  const [betsOpen, setBetsOpen] = useState(false);
   const stageLabel =
     item.stage === "group" && item.groupLabel
       ? `Grupo ${item.groupLabel}`
@@ -127,6 +129,28 @@ function ResultCard({ item, meId }: { item: ResultFeedItem; meId: number }) {
           )}
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setBetsOpen(true)}
+        className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-lg border border-line py-1.5 text-[11px] font-semibold text-mute transition hover:border-neon/60 hover:text-neon"
+      >
+        <Eye size={13} /> ver palpites
+      </button>
+
+      {betsOpen && (
+        <MatchBetsModal
+          matchId={item.matchId}
+          homeTeam={item.homeTeam}
+          awayTeam={item.awayTeam}
+          homeScore={item.homeScore}
+          awayScore={item.awayScore}
+          multiplier={item.multiplier}
+          live={item.live}
+          meId={meId}
+          onClose={() => setBetsOpen(false)}
+        />
+      )}
     </div>
   );
 }
