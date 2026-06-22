@@ -110,9 +110,13 @@ export function PointsChart({
 
   return (
     <div className="mb-6 rounded-xl border border-line bg-panel p-3">
-      <div className="mb-2 flex items-baseline gap-2">
+      <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-xs font-semibold text-mute">Pontos acumulados</span>
-        {hasLive && <span className="text-[10px] text-mute">tracejado = prévia (ao vivo)</span>}
+        {hasLive && (
+          <span className="flex items-center gap-1 text-[10px] font-bold text-gold">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold" /> ao vivo
+          </span>
+        )}
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative w-full sm:flex-1">
@@ -131,9 +135,6 @@ export function PointsChart({
                 {i + 1}
               </text>
             ))}
-            {hasLive && (
-              <text x={x(liveIdx)} y={H - 6} textAnchor="middle" fontSize="7" fill={GOLD}>ao vivo</text>
-            )}
 
             {(hv || hover === "live") && (
               <line x1={hoverX} y1={padT} x2={hoverX} y2={padT + plotH} stroke="var(--mute)" strokeWidth={0.5} opacity={0.5} />
@@ -163,7 +164,6 @@ export function PointsChart({
                       y2={y(live)}
                       stroke={st.stroke}
                       strokeWidth={st.width}
-                      strokeDasharray="3 2"
                       strokeLinecap="round"
                       opacity={st.opacity}
                     />

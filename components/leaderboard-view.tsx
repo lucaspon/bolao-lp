@@ -56,8 +56,13 @@ function PointsBarChart({
   metric: "livePoints" | "points";
 }) {
   const value = (row: LeaderRow) => row[metric];
+  // Same ordering as the standings table: points, then total bet, then exact hits.
   const sorted = [...rows].sort(
-    (a, b) => value(b) - value(a) || a.username.localeCompare(b.username),
+    (a, b) =>
+      value(b) - value(a) ||
+      b.stakeCents - a.stakeCents ||
+      b.exact - a.exact ||
+      a.username.localeCompare(b.username),
   );
   const maxV = Math.max(0, ...sorted.map(value));
   if (maxV <= 0) {
