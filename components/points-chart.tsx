@@ -142,7 +142,8 @@ export function PointsChart({
 
             {drawOrder.map(({ s, st }) => {
               const live = liveOf(s);
-              const showLive = hasLive && live > s.total;
+              // Extend every line to the "ao vivo" slot — flat for +0 players.
+              const showLive = hasLive;
               const hoverY =
                 hover === "live" ? y(live) : hv ? y(s.cumulative[hover as number]) : 0;
               return (
