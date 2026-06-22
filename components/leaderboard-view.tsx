@@ -4,31 +4,10 @@ import { useState } from "react";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
-import { getTeam } from "@/lib/teams";
-import { HoverTip } from "@/components/hover-tip";
+import { PlayerResultsModal } from "@/components/player-results-modal";
 import { PointsChart } from "@/components/points-chart";
 import type { LeaderRow, ScoredBet, PointsProgression } from "@/lib/db/queries";
 import { computePayouts } from "@/lib/payout";
-
-function flagOf(code: string | null): string {
-  return getTeam(code)?.flag ?? "⚽";
-}
-
-// Hover breakdown: each match the player scored on — "🇧🇷 2 x 1 🇲🇦 +6pts".
-function ScoredBetsList({ bets }: { bets: ScoredBet[] }) {
-  return (
-    <div className="flex max-h-[60vh] flex-col gap-1 text-left">
-      {bets.map((bet, index) => (
-        <div key={index} className="flex items-center justify-between gap-3 whitespace-nowrap">
-          <span>
-            {flagOf(bet.homeTeam)} {bet.homeScore} x {bet.awayScore} {flagOf(bet.awayTeam)}
-          </span>
-          <span className="font-bold text-neon">+{bet.points}pts</span>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -160,6 +139,7 @@ export function LeaderboardView({
 }) {
   const hasLive = liveCount > 0;
   const [view, setView] = useState<View>("live"); // Prévia is the default view
+  const [openUserId, setOpenUserId] = useState<number | null>(null);
 
   const metric = view === "live" ? "livePoints" : "points";
   const value = (row: LeaderRow) => row[metric];
@@ -260,7 +240,6 @@ export function LeaderboardView({
               const isMe = row.userId === meId;
               const gold = qualifies(row);
               const rank = rankOf(row);
-              const myScored = scoredBets[row.userId] ?? [];
               const nameColor = isMe ? "text-neon" : gold ? "text-gold" : "text-ink";
               const delta = view === "live" && hasLive ? liveDelta(row) : 0;
               return (
@@ -300,20 +279,19 @@ export function LeaderboardView({
                     </div>
                   </td>
                   <td className="px-3 py-2.5 font-medium">
-                    <HoverTip
-                      content={myScored.length > 0 ? <ScoredBetsList bets={myScored} /> : undefined}
-                      className={cn(myScored.length > 0 && "cursor-help")}
+                    <button
+                      type="button"
+                      onClick={() => setOpenUserId(row.userId)}
+                      className={cn(nameColor, "cursor-pointer text-left hover:underline")}
                     >
-                      <span className={nameColor}>
-                        {row.username === "Claude AI" ? (
-                          <>
-                            🤖 <span className="font-mono">{row.username}</span>
-                          </>
-                        ) : (
-                          row.username
-                        )}
-                      </span>
-                    </HoverTip>
+                      {row.username === "Claude AI" ? (
+                        <>
+                          🤖 <span className="font-mono">{row.username}</span>
+                        </>
+                      ) : (
+                        row.username
+                      )}
+                    </button>
                     {isMe && <span className="ml-1.5 text-xs text-mute">(você)</span>}
                   </td>
                   <td className="tabular px-3 py-2.5 text-right text-mute">{row.exact}</td>
@@ -360,6 +338,24 @@ export function LeaderboardView({
           </tbody>
         </table>
       </div>
+
+      {openUserId !== null &&
+        (() => {
+          const row = sorted.find((r) => r.userId === openUserId);
+          if (!row) return null;
+          return (
+            <PlayerResultsModal
+              row={row}
+              rank={rankOf(row)}
+              bets={scoredBets[row.userId] ?? []}
+              prizeCents={payouts.get(row.userId) ?? 0}
+              pct={pct(row.points)}
+              isMe={row.userId === meId}
+              hasLive={hasLive}
+              onClose={() => setOpenUserId(null)}
+            />
+          );
+        })()}
     </div>
   );
 }
