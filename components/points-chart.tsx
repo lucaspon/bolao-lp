@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { getTeam } from "@/lib/teams";
 import { cn } from "@/lib/utils";
-import type { PointsProgression, ProgressionSeries } from "@/lib/db/queries";
+import type { PointsProgression, ProgressionSeries, LeaderRow } from "@/lib/db/queries";
 
 // Top-5 line colours (gold is reserved for the logged-in user).
 const TOP5_COLORS = ["#34e27a", "#5b9dff", "#ff5d6c", "#c084fc", "#22d3ee"];
@@ -59,26 +59,36 @@ function smoothPath(pts: Pt[]): string {
 
 // Inline SVG line chart of every player's cumulative points over the
 // finished-match timeline (x = match number, y = points). Top 5 are coloured at
-// 80%, the rest gray at 20%, and the logged-in user gold at full opacity.
+// 80%, the rest gray at 20%, and the logged-in user gold at full opacity. When
+// games are in progress, each line gets a DASHED extension to the player's
+// Prévia total (official + current in-play points).
 export function PointsChart({
   progression,
   meId,
+  rows,
 }: {
   progression: PointsProgression;
   meId: number;
+  rows: LeaderRow[];
 }) {
   const { timeline, series } = progression;
-  const [hover, setHover] = useState<number | null>(null);
+  const [hover, setHover] = useState<number | "live" | null>(null);
   if (timeline.length === 0 || series.length === 0) return null;
+
+  const liveByUser = new Map(rows.map((r) => [r.userId, r.livePoints]));
+  const liveOf = (s: ProgressionSeries) => liveByUser.get(s.userId) ?? s.total;
+  const hasLive = series.some((s) => liveOf(s) > s.total);
 
   const W = 320, H = 152, padL = 22, padR = 8, padT = 10, padB = 18;
   const plotW = W - padL - padR;
   const plotH = H - padT - padB;
-  const n = timeline.length + 1; // +1 for the start-at-0 point
-  const maxY = Math.max(1, ...series.map((s) => s.total));
-  const x = (i: number) => padL + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+  const M = timeline.length;
+  const liveIdx = M + 1; // x-index of the trailing "ao vivo" slot
+  const slots = M + 1 + (hasLive ? 1 : 0); // start(0) + matches + maybe live
+  const maxY = Math.max(1, ...series.map((s) => Math.max(s.total, liveOf(s))));
+  const x = (i: number) => padL + (slots <= 1 ? plotW / 2 : (i / (slots - 1)) * plotW);
   const y = (v: number) => padT + plotH - (v / maxY) * plotH;
-  const band = n <= 1 ? plotW : plotW / (n - 1);
+  const band = slots <= 1 ? plotW : plotW / (slots - 1);
 
   // series is sorted by total desc → the first 5 are the top 5.
   const styleFor = (s: ProgressionSeries, idx: number) => {
@@ -88,19 +98,22 @@ export function PointsChart({
   };
   const pathOf = (s: ProgressionSeries) =>
     smoothPath([0, ...s.cumulative].map((v, i) => ({ x: x(i), y: y(v) })));
-  // Draw gray first, then top-5, then the user on top.
   const drawOrder = series.map((s, idx) => ({ s, idx, st: styleFor(s, idx) })).sort((a, b) => a.st.z - b.st.z);
   const legend = series.map((s, idx) => ({ s, idx, st: styleFor(s, idx) })).filter((e) => e.idx < 5 || e.s.userId === meId);
 
-  const step = Math.max(1, Math.ceil(timeline.length / 6));
-  const xTicks = [...new Set([...Array(timeline.length).keys()].filter((i) => i % step === 0).concat(timeline.length - 1))];
+  const step = Math.max(1, Math.ceil(M / 6));
+  const xTicks = [...new Set([...Array(M).keys()].filter((i) => i % step === 0).concat(M - 1))];
   const yTicks = [0, Math.round(maxY / 2), maxY];
 
-  const hv = hover != null ? timeline[hover] : null;
+  const hv = typeof hover === "number" ? timeline[hover] : null;
+  const hoverX = hover === "live" ? x(liveIdx) : hv ? x((hover as number) + 1) : 0;
 
   return (
     <div className="mb-6 rounded-xl border border-line bg-panel p-3">
-      <div className="mb-2 text-xs font-semibold text-mute">Pontos acumulados</div>
+      <div className="mb-2 flex items-baseline gap-2">
+        <span className="text-xs font-semibold text-mute">Pontos acumulados</span>
+        {hasLive && <span className="text-[10px] text-mute">tracejado = prévia (ao vivo)</span>}
+      </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative w-full sm:flex-1">
           <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Pontos acumulados de todos os jogadores">
@@ -112,17 +125,25 @@ export function PointsChart({
               </g>
             ))}
 
-            {/* x-axis: match numbers */}
+            {/* x-axis: match numbers + live slot */}
             {xTicks.map((i) => (
               <text key={i} x={x(i + 1)} y={H - 6} textAnchor="middle" fontSize="7" fill="var(--mute)">
                 {i + 1}
               </text>
             ))}
+            {hasLive && (
+              <text x={x(liveIdx)} y={H - 6} textAnchor="middle" fontSize="7" fill={GOLD}>ao vivo</text>
+            )}
 
-            {hv && <line x1={x(hover! + 1)} y1={padT} x2={x(hover! + 1)} y2={padT + plotH} stroke="var(--mute)" strokeWidth={0.5} opacity={0.5} />}
+            {(hv || hover === "live") && (
+              <line x1={hoverX} y1={padT} x2={hoverX} y2={padT + plotH} stroke="var(--mute)" strokeWidth={0.5} opacity={0.5} />
+            )}
 
             {drawOrder.map(({ s, st }) => {
-              const colored = st.z > 0;
+              const live = liveOf(s);
+              const showLive = hasLive && live > s.total;
+              const hoverY =
+                hover === "live" ? y(live) : hv ? y(s.cumulative[hover as number]) : 0;
               return (
                 <g key={s.userId}>
                   <path
@@ -134,14 +155,27 @@ export function PointsChart({
                     strokeLinecap="round"
                     opacity={st.opacity}
                   />
-                  {colored && hv && (
-                    <circle cx={x(hover! + 1)} cy={y(s.cumulative[hover!])} r={1.8} fill={st.stroke} />
+                  {showLive && (
+                    <line
+                      x1={x(M)}
+                      y1={y(s.total)}
+                      x2={x(liveIdx)}
+                      y2={y(live)}
+                      stroke={st.stroke}
+                      strokeWidth={st.width}
+                      strokeDasharray="3 2"
+                      strokeLinecap="round"
+                      opacity={st.opacity}
+                    />
+                  )}
+                  {st.z > 0 && (hv || hover === "live") && (
+                    <circle cx={hoverX} cy={hoverY} r={1.8} fill={st.stroke} />
                   )}
                 </g>
               );
             })}
 
-            {/* transparent hit areas, one per match */}
+            {/* transparent hit areas */}
             {timeline.map((_, i) => (
               <rect
                 key={i}
@@ -154,14 +188,25 @@ export function PointsChart({
                 onMouseLeave={() => setHover(null)}
               />
             ))}
+            {hasLive && (
+              <rect
+                x={x(liveIdx) - band / 2}
+                y={padT}
+                width={band}
+                height={plotH}
+                fill="transparent"
+                onMouseEnter={() => setHover("live")}
+                onMouseLeave={() => setHover(null)}
+              />
+            )}
           </svg>
           {hv && (
             <div
               className="pointer-events-none absolute top-1 z-10 w-40 -translate-x-1/2 rounded-md border border-line bg-panel2 px-2 py-1.5 text-[10px] shadow-lg shadow-black/50"
-              style={{ left: `${Math.min(82, Math.max(18, (x(hover! + 1) / W) * 100))}%` }}
+              style={{ left: `${Math.min(82, Math.max(18, (hoverX / W) * 100))}%` }}
             >
               <div className="font-semibold text-mute">
-                Jogo {hover! + 1} · {fmtDate(hv.ms)}
+                Jogo {(hover as number) + 1} · {fmtDate(hv.ms)}
               </div>
               <div className="font-bold text-ink">
                 {code(hv.homeTeam)} {hv.homeScore}–{hv.awayScore} {code(hv.awayTeam)}
@@ -178,17 +223,32 @@ export function PointsChart({
               </div>
             </div>
           )}
+          {hover === "live" && (
+            <div
+              className="pointer-events-none absolute top-1 z-10 w-40 -translate-x-1/2 rounded-md border border-line bg-panel2 px-2 py-1.5 text-[10px] shadow-lg shadow-black/50"
+              style={{ left: `${Math.min(82, Math.max(18, (hoverX / W) * 100))}%` }}
+            >
+              <div className="font-bold text-gold">Prévia · ao vivo</div>
+              <div className="text-mute">
+                Projeção pelo placar atual dos jogos em andamento.
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex flex-col gap-1 text-[11px] sm:w-44 sm:shrink-0">
-          {legend.map(({ s, st }) => (
-            <span key={s.userId} className="flex items-center gap-1.5">
-              <span className="inline-block h-1.5 w-3 shrink-0 rounded-full" style={{ backgroundColor: st.stroke }} />
-              <span className={cn("truncate", s.userId === meId ? "font-bold text-ink" : "text-mute")}>
-                {s.username === "Claude AI" ? "🤖 Claude AI" : s.username}
-                {s.userId === meId ? " (você)" : ""} · {s.total}
+          {legend.map(({ s, st }) => {
+            const live = liveOf(s);
+            return (
+              <span key={s.userId} className="flex items-center gap-1.5">
+                <span className="inline-block h-1.5 w-3 shrink-0 rounded-full" style={{ backgroundColor: st.stroke }} />
+                <span className={cn("truncate", s.userId === meId ? "font-bold text-ink" : "text-mute")}>
+                  {s.username === "Claude AI" ? "🤖 Claude AI" : s.username}
+                  {s.userId === meId ? " (você)" : ""} · {s.total}
+                  {live > s.total && <span className="text-gold"> →{live}</span>}
+                </span>
               </span>
-            </span>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
