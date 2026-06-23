@@ -6,7 +6,7 @@ import {
   getStakingBounds,
   getOrCreateApiToken,
 } from "@/lib/db/queries";
-import { MatchCard } from "@/components/match-card";
+import { MyBets } from "@/components/my-bets";
 import { PayEntry } from "@/components/pay-entry";
 import { ApiAccess } from "@/components/api-access";
 import { scoreBet } from "@/lib/scoring";
@@ -85,11 +85,7 @@ export default async function ProfilePage() {
           </a>
         </p>
       ) : (
-        <div className="grid gap-3">
-          {myPicks.map((match) => (
-            <MatchCard key={match.id} match={match} />
-          ))}
-        </div>
+        <MyBets picks={myPicks} />
       )}
     </div>
   );
