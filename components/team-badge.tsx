@@ -8,8 +8,8 @@ type Props = {
   className?: string;
 };
 
-// Shows a team's flag + name, or a greyed-out placeholder when the team is not
-// yet decided (knockout slots like "Winner Group A").
+// Shows a team's flag + short code, or a greyed-out placeholder when the team is
+// not yet decided (knockout slots like "Winner Group A").
 export function TeamBadge({ code, placeholder, align = "left", className }: Props) {
   const team = getTeam(code);
   const rightToLeft = align === "right";
@@ -25,7 +25,7 @@ export function TeamBadge({ code, placeholder, align = "left", className }: Prop
       <span className="text-2xl leading-none">{team ? team.flag : "⚽"}</span>
       {team ? (
         <span className="truncate font-display text-lg font-semibold tracking-wide text-ink">
-          {team.name}
+          {team.code}
         </span>
       ) : (
         <span className="truncate text-sm italic text-mute">
