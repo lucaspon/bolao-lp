@@ -27,6 +27,9 @@ export type PillMatch = {
   bet: { homePred: number; awayPred: number; points: number | null } | null;
   dateLabel: string;
   venue: string | null;
+  // Projected (not-yet-official) team — rendered with a "prévia" treatment.
+  homePreview?: boolean;
+  awayPreview?: boolean;
 };
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -48,32 +51,35 @@ function clampScore(prev: string, delta: number): string {
   return String(Math.max(0, Math.min(30, base + delta)));
 }
 
-// Both sides take flex-1 so the score block is always exactly centred.
+// Both sides take flex-1 so the score block is always exactly centred. A
+// `preview` team (projected from group standings) is shown italic + dimmed.
 function Side_({
   code,
   placeholder,
   reverse,
+  preview,
 }: {
   code: string | null;
   placeholder: string | null;
   reverse?: boolean;
+  preview?: boolean;
 }) {
   const team = getTeam(code);
   return (
     <HoverTip
-      label={team?.name}
+      label={team ? (preview ? `${team.name} (prévia)` : team.name) : undefined}
       className={cn(
         "flex flex-1 min-w-0 items-center gap-1",
         reverse ? "flex-row-reverse" : "",
       )}
     >
-      <span className="shrink-0 text-sm leading-none">
+      <span className={cn("shrink-0 text-sm leading-none", preview && "opacity-60")}>
         {team ? team.flag : "⚽"}
       </span>
       <span
         className={cn(
           "truncate font-display text-[11px] font-semibold",
-          team ? "text-ink" : "text-mute",
+          team ? (preview ? "italic text-mute" : "text-ink") : "text-mute",
         )}
       >
         {team ? team.code : shortPlaceholder(placeholder)}
@@ -273,7 +279,7 @@ export function MatchPill({
       <div className="my-auto flex flex-col items-center gap-1">
         {/* Score row — flex-1 sides guarantee the score is exactly centred */}
         <div className="flex w-full items-center gap-1">
-          <Side_ code={match.homeTeam} placeholder={match.homePlaceholder} />
+          <Side_ code={match.homeTeam} placeholder={match.homePlaceholder} preview={match.homePreview} />
 
           <span className="flex shrink-0 items-center">
             {editable ? (
@@ -297,6 +303,7 @@ export function MatchPill({
             code={match.awayTeam}
             placeholder={match.awayPlaceholder}
             reverse
+            preview={match.awayPreview}
           />
         </div>
 

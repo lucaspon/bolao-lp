@@ -2,12 +2,14 @@ import { requireUser } from "@/lib/auth/session";
 import { getMatchesForUser, type MatchWithBet } from "@/lib/db/queries";
 import { canBet, isLockedAt, isClosingSoon, pointsElapsedPct } from "@/lib/match";
 import { stakingWindow } from "@/lib/staking";
+import { computeStandings, type Standings } from "@/lib/standings";
 import { BetDeadlineCallout } from "@/components/bet-deadline-callout";
 import { GROUP_LABELS } from "@/lib/teams";
 import { BRACKET, matchNoForApiId, slotShortLabel } from "@/lib/bracket";
 import { formatPillKickoff } from "@/lib/format";
 import { MatchPill, type PillMatch } from "@/components/match-pill";
-import { BracketView, type BracketPill } from "@/components/bracket-view";
+import { type BracketPill } from "@/components/bracket-view";
+import { KnockoutView, type KnockoutData } from "@/components/knockout-view";
 import { StageTabs, type StagePanel } from "@/components/stage-tabs";
 import { KeyboardBetProvider } from "@/components/keyboard-bet";
 
@@ -76,22 +78,47 @@ function GroupStage({ matches }: { matches: MatchWithBet[] }) {
   );
 }
 
-// Enriches each knockout match with its FIFA match number and the group-slot /
-// feeder label to show until the real team is decided.
-function toBracketPills(matches: MatchWithBet[]): BracketPill[] {
+// Enriches each knockout match with its FIFA match number, the group-slot /
+// feeder label, and — for the Round of 32 — the team projected from the current
+// group standings (so the bracket pre-fills before the API assigns real teams).
+function toBracketPills(matches: MatchWithBet[], standings: Standings): BracketPill[] {
   return matches.flatMap((match) => {
     const matchNo = matchNoForApiId(match.apiMatchId);
     if (matchNo == null) return [];
     const spec = BRACKET[matchNo];
+    const isR32 = spec.round === "round_of_32";
+    const homeFill = match.homeTeam
+      ? { team: match.homeTeam, preview: false }
+      : isR32
+        ? standings.r32Slot(matchNo, "home")
+        : { team: null, preview: false };
+    const awayFill = match.awayTeam
+      ? { team: match.awayTeam, preview: false }
+      : isR32
+        ? standings.r32Slot(matchNo, "away")
+        : { team: null, preview: false };
     return [
       {
         ...toPill(match),
         matchNo,
+        homeTeam: homeFill.team,
+        awayTeam: awayFill.team,
+        homePreview: homeFill.preview && homeFill.team != null,
+        awayPreview: awayFill.preview && awayFill.team != null,
         homePlaceholder: slotShortLabel(spec.home),
         awayPlaceholder: slotShortLabel(spec.away),
       },
     ];
   });
+}
+
+function knockoutData(matches: MatchWithBet[], knockout: MatchWithBet[], includeLive: boolean): KnockoutData {
+  const standings = computeStandings(matches, includeLive);
+  return {
+    groups: standings.groups,
+    qualifyingThirdGroups: [...standings.qualifyingThirdGroups],
+    pills: toBracketPills(knockout, standings),
+  };
 }
 
 // Weighted tournament progress: how much of the total points pool has already
@@ -158,7 +185,9 @@ export default async function MatchesPage() {
   const elapsedPct = pointsElapsedPct(matches);
 
   const groupMatches = matches.filter((match) => match.stage === "group");
-  const knockoutPills = toBracketPills(matches.filter((match) => match.stage !== "group"));
+  const knockoutMatches = matches.filter((match) => match.stage !== "group");
+  const previa = knockoutData(matches, knockoutMatches, true);
+  const oficial = knockoutData(matches, knockoutMatches, false);
 
   const topupCloses = topupDeadlineMs(matches);
 
@@ -172,8 +201,8 @@ export default async function MatchesPage() {
     {
       key: "knockout",
       short: "Mata-mata",
-      count: knockoutPills.length,
-      node: <BracketView matches={knockoutPills} />,
+      count: previa.pills.length,
+      node: <KnockoutView previa={previa} oficial={oficial} />,
     },
   ].filter((panel) => panel.count > 0);
 
