@@ -1,15 +1,9 @@
-import { sql, eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { db } from "./db/client";
 import { matches, type Stage, type MatchStatus } from "./db/schema";
 import { rescoreMatch, getUnscoredMatchIds } from "./db/queries";
 import { matchPointsMultiplier } from "./match";
 import { TEAMS } from "./teams";
-
-// Minutes after kickoff by which a match is certainly over (90 + half-time +
-// stoppage for groups; + extra time + penalties for knockouts). Past this, we
-// finalize a still-"live" match at football-data's score even if its status lags.
-const GROUP_OVER_MIN = 125;
-const KO_OVER_MIN = 175;
 
 // Lower-case + strip diacritics so "Curaçao" and "Curacao" compare equal.
 function normalizeName(name: string): string {
@@ -173,34 +167,20 @@ export async function syncMatches(): Promise<SyncResult> {
       });
 
     result.total += 1;
-
-    // football-data is slow to flip a finished match's STATUS to FINISHED (it can
-    // sit on IN_PLAY for ~20-30 min) even though its SCORE is already final. So if
-    // a match is still "live" but clearly over by the clock, finalize it now at
-    // football-data's authoritative score — never the live overlay's last sample,
-    // which can miss a late goal. A wrong score here self-heals: a later sync sees
-    // the score change and rescores.
-    const kickoffMs = new Date(apiMatch.utcDate).getTime();
-    const clearlyOverMin = stage === "group" ? GROUP_OVER_MIN : KO_OVER_MIN;
-    const clearlyOver = Date.now() > kickoffMs + clearlyOverMin * 60_000;
-    const hasFinalScore = saved.homeScore !== null && saved.awayScore !== null;
-    const forcedFinal =
-      saved.status === "live" && hasFinalScore && clearlyOver;
-    if (forcedFinal) {
-      await db.update(matches).set({ status: "finished" }).where(eq(matches.id, saved.id));
-    }
-
-    const finished = saved.status === "finished" || forcedFinal;
-    if (saved.status === "live" && !forcedFinal) result.live += 1;
-    // Rescore from the STORED score (post-merge). Rescore when the score changed,
-    // when the match was just finalized, or when any bet is still unscored.
-    if (finished && hasFinalScore) {
+    if (saved.status === "live") result.live += 1;
+    // Finalization is driven solely by football-data's FINISHED status (applied
+    // by the merge above), never by the clock — a clock rule wrongly finalizes a
+    // rain-suspended match whose elapsed time exceeds 90'. The merge keeps the
+    // score current (even while football-data still says IN_PLAY), so a finished
+    // match shows the right score. Rescore when that score changed or bets are
+    // still unscored.
+    if (saved.status === "finished" && saved.homeScore !== null && saved.awayScore !== null) {
       result.finished += 1;
       const old = oldByApiId.get(apiMatch.id);
       const scoreChanged =
         !old || old.homeScore !== saved.homeScore || old.awayScore !== saved.awayScore;
-      if (scoreChanged || forcedFinal || unscoredMatchIds.has(saved.id)) {
-        await rescoreMatch(saved.id, saved.homeScore!, saved.awayScore!);
+      if (scoreChanged || unscoredMatchIds.has(saved.id)) {
+        await rescoreMatch(saved.id, saved.homeScore, saved.awayScore);
         result.rescored += 1;
       }
     }
