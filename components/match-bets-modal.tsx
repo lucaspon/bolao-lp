@@ -139,7 +139,14 @@ export function MatchBetsModal({
         const base = scoreBet(bet.homePred, bet.awayPred, homeScore, awayScore);
         return { ...bet, base, points: base * multiplier };
       });
-      scored.sort((a, b) => b.points - a.points || a.username.localeCompare(b.username));
+      // Sort by the predicted scoreline (home, then away) so identical bets
+      // group together, then by name.
+      scored.sort(
+        (a, b) =>
+          a.homePred - b.homePred ||
+          a.awayPred - b.awayPred ||
+          a.username.localeCompare(b.username),
+      );
       setRows(scored);
     });
     return () => {
