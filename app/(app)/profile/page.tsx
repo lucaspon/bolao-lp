@@ -51,9 +51,9 @@ export default async function ProfilePage() {
     scored.length > 0 ? Math.round(((exact + correct) / scored.length) * 100) : null;
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-4xl">
       {/* Header + payment + stats + API stay narrow for readability; the match
-          cards below use the full width so they can fan out into 4 columns. */}
+          cards below use the full width so they can fan out into 2 columns. */}
       <div className="mx-auto max-w-3xl">
         <h1 className="mb-1 font-display text-2xl font-bold tracking-wide">Minhas Apostas</h1>
         <p className="mb-5 text-sm text-mute">Conectado como @{user.username}</p>
