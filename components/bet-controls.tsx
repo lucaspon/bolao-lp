@@ -58,17 +58,17 @@ function Stepper({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-0.5">
       <button
         type="button"
         aria-label="diminuir"
         disabled={disabled || value <= 0}
         onClick={() => onChange(Math.max(0, value - 1))}
-        className="flex h-7 w-7 items-center justify-center rounded-md border border-line text-mute hover:text-ink disabled:opacity-30"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-line text-mute hover:text-ink disabled:opacity-30"
       >
-        <Minus size={14} />
+        <Minus size={12} />
       </button>
-      <span className="tabular w-7 text-center font-display text-2xl font-bold text-ink">
+      <span className="tabular w-5 text-center font-display text-lg font-bold text-ink">
         {value}
       </span>
       <button
@@ -76,9 +76,9 @@ function Stepper({
         aria-label="aumentar"
         disabled={disabled || value >= MAX_SCORE}
         onClick={() => onChange(Math.min(MAX_SCORE, value + 1))}
-        className="flex h-7 w-7 items-center justify-center rounded-md border border-line text-mute hover:text-ink disabled:opacity-30"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-line text-mute hover:text-ink disabled:opacity-30"
       >
-        <Plus size={14} />
+        <Plus size={12} />
       </button>
     </div>
   );
@@ -124,36 +124,36 @@ export function BetControls(props: BetControlsProps) {
   const editable = teamsKnown && props.status === "scheduled" && !locked;
 
   return (
-    <div suppressHydrationWarning className="flex flex-col gap-3">
-      <div className="flex items-center gap-3">
+    <div suppressHydrationWarning className="flex flex-col gap-2">
+      <div className="flex items-center gap-1.5">
         <TeamBadge
           code={props.homeTeam}
           placeholder={props.homePlaceholder}
           className="flex-1"
         />
 
-        <div className="flex shrink-0 flex-col items-center gap-1.5">
+        <div className="flex shrink-0 flex-col items-center">
           {showActual ? (
             <div
               className={cn(
-                "tabular font-display text-3xl font-bold",
+                "tabular font-display text-xl font-bold",
                 live ? "text-danger" : "text-ink",
               )}
             >
               {props.homeScore}
-              <span className="px-1.5 text-mute">:</span>
+              <span className="px-1 text-mute">:</span>
               {props.awayScore}
             </div>
           ) : editable ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-0.5">
               <Stepper value={home} onChange={setHome} disabled={pending} />
-              <span className="text-mute">:</span>
+              <span className="text-xs text-mute">:</span>
               <Stepper value={away} onChange={setAway} disabled={pending} />
             </div>
           ) : (
-            <div className="tabular font-display text-3xl font-bold text-mute">
+            <div className="tabular font-display text-xl font-bold text-mute">
               {bet ? bet.homePred : "–"}
-              <span className="px-1.5">:</span>
+              <span className="px-1">:</span>
               {bet ? bet.awayPred : "–"}
             </div>
           )}
@@ -211,12 +211,12 @@ function Footer({
 }) {
   if (live) {
     return (
-      <div className="flex items-center justify-between border-t border-line pt-2.5 text-sm">
-        <span className="flex items-center gap-1.5 font-semibold text-gold">
+      <div className="flex items-center justify-between gap-2 border-t border-line pt-2 text-xs">
+        <span className="flex items-center gap-1 font-semibold text-gold">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold" /> AO VIVO
         </span>
-        <span className="text-mute">
-          {bet ? `Seu palpite: ${bet.homePred}–${bet.awayPred}` : "Sem palpite"}
+        <span className="truncate text-mute">
+          {bet ? `Palpite ${bet.homePred}–${bet.awayPred}` : "Sem palpite"}
         </span>
       </div>
     );
@@ -224,56 +224,48 @@ function Footer({
 
   if (finished) {
     return (
-      <div className="flex items-center justify-between border-t border-line pt-2.5 text-sm">
-        <span className="text-mute">
-          {bet ? `Seu palpite: ${bet.homePred}–${bet.awayPred}` : "Sem palpite"}
+      <div className="flex items-center justify-between gap-2 border-t border-line pt-2 text-xs">
+        <span className="truncate text-mute">
+          {bet ? `Palpite ${bet.homePred}–${bet.awayPred}` : "Sem palpite"}
         </span>
         {bet && base !== null && bet.points !== null ? (
-        <PointsBadge base={base} points={bet.points} />
-      ) : null}
+          <PointsBadge base={base} points={bet.points} />
+        ) : null}
       </div>
     );
   }
 
   if (!teamsKnown) {
     return (
-      <div className="border-t border-line pt-2.5 text-sm text-mute">
-        Times a definir — as apostas abrem quando o chaveamento for definido.
+      <div className="border-t border-line pt-2 text-xs text-mute">
+        Times a definir.
       </div>
     );
   }
 
   if (locked) {
     return (
-      <div className="flex items-center justify-between border-t border-line pt-2.5 text-sm">
-        <span className="flex items-center gap-1.5 text-mute">
-          <Lock size={13} /> Fechado
+      <div className="flex items-center justify-between gap-2 border-t border-line pt-2 text-xs">
+        <span className="flex items-center gap-1 text-mute">
+          <Lock size={12} /> Fechado
         </span>
-        <span className="text-mute">
-          {bet ? `Seu palpite: ${bet.homePred}–${bet.awayPred}` : "Nenhum palpite feito"}
+        <span className="truncate text-mute">
+          {bet ? `Palpite ${bet.homePred}–${bet.awayPred}` : "Sem palpite"}
         </span>
       </div>
     );
   }
 
-  // editable
+  // editable — full-width compact button
   return (
-    <div className="flex items-center justify-between gap-3 border-t border-line pt-2.5">
-      <span className="text-xs text-mute">
-        {error ? (
-          <span className="text-danger">{error}</span>
-        ) : bet ? (
-          "Dá pra editar até 10 min antes do jogo"
-        ) : (
-          "Faça seu palpite"
-        )}
-      </span>
+    <div className="border-t border-line pt-2">
+      {error && <p className="mb-1 text-[11px] text-danger">{error}</p>}
       <button
         type="button"
         onClick={onSave}
         disabled={pending || (!dirty && !!bet)}
         className={cn(
-          "inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold transition",
+          "inline-flex h-7 w-full items-center justify-center gap-1 rounded-lg text-xs font-semibold transition",
           savedTick
             ? "bg-neon/20 text-neon"
             : "bg-neon text-base hover:brightness-110 disabled:opacity-40 disabled:hover:brightness-100",
@@ -281,14 +273,14 @@ function Footer({
       >
         {savedTick ? (
           <>
-            <Check size={15} /> Salvo
+            <Check size={14} /> Salvo
           </>
         ) : pending ? (
           "Salvando…"
         ) : bet ? (
-          "Atualizar palpite"
+          "Atualizar"
         ) : (
-          "Salvar palpite"
+          "Salvar"
         )}
       </button>
     </div>

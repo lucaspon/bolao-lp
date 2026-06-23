@@ -38,8 +38,8 @@ export function MatchCard({ match }: { match: MatchWithBet }) {
         );
 
   return (
-    <article className={cn("rounded-2xl p-4 transition", stateClass)}>
-      <header className="mb-3 flex items-center justify-between gap-2 text-xs text-mute">
+    <article className={cn("rounded-xl p-3 transition", stateClass)}>
+      <header className="mb-2 flex items-center justify-between gap-2 text-[11px] text-mute">
         <span className="flex min-w-0 items-center gap-2">
           {match.groupLabel && (
             <span className="shrink-0 rounded bg-panel2 px-1.5 py-0.5 font-semibold text-ink">
@@ -80,7 +80,7 @@ export function MatchCard({ match }: { match: MatchWithBet }) {
         bet={match.bet}
       />
 
-      <div className="mt-2.5 text-[11px] text-mute">{formatKickoff(match.kickoffAt)}</div>
+      <div className="mt-2 text-[10px] text-mute">{formatKickoff(match.kickoffAt)}</div>
     </article>
   );
 }
