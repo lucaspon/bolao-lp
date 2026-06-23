@@ -51,34 +51,38 @@ export default async function ProfilePage() {
     scored.length > 0 ? Math.round(((exact + correct) / scored.length) * 100) : null;
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="mb-1 font-display text-2xl font-bold tracking-wide">Minhas Apostas</h1>
-      <p className="mb-5 text-sm text-mute">Conectado como @{user.username}</p>
+    <div className="mx-auto max-w-6xl">
+      {/* Header + payment + stats + API stay narrow for readability; the match
+          cards below use the full width so they can fan out into 4 columns. */}
+      <div className="mx-auto max-w-3xl">
+        <h1 className="mb-1 font-display text-2xl font-bold tracking-wide">Minhas Apostas</h1>
+        <p className="mb-5 text-sm text-mute">Conectado como @{user.username}</p>
 
-      <div className="mb-6">
-        <PayEntry
-          stakeCents={stakeCents}
-          phase={window.phase}
-          open={window.open}
-          topUpOnly={window.topUpOnly}
-          firstTimeOnly={window.firstTimeOnly}
-        />
-      </div>
+        <div className="mb-6">
+          <PayEntry
+            stakeCents={stakeCents}
+            phase={window.phase}
+            open={window.open}
+            topUpOnly={window.topUpOnly}
+            firstTimeOnly={window.firstTimeOnly}
+          />
+        </div>
 
-      <div className="mb-7 grid grid-cols-2 gap-2.5 sm:grid-cols-5">
-        <Stat value={points} label="pontos" />
-        <Stat value={myPicks.length} label="palpites" />
-        <Stat value={exact} label="cravadas" />
-        <Stat value={correct} label="resultados" />
-        <Stat value={accuracy === null ? "–" : `${accuracy}%`} label="precisão" />
-      </div>
+        <div className="mb-7 grid grid-cols-2 gap-2.5 sm:grid-cols-5">
+          <Stat value={points} label="pontos" />
+          <Stat value={myPicks.length} label="palpites" />
+          <Stat value={exact} label="cravadas" />
+          <Stat value={correct} label="resultados" />
+          <Stat value={accuracy === null ? "–" : `${accuracy}%`} label="precisão" />
+        </div>
 
-      <div className="mb-7">
-        <ApiAccess token={apiToken} baseUrl={baseUrl} />
+        <div className="mb-7">
+          <ApiAccess token={apiToken} baseUrl={baseUrl} />
+        </div>
       </div>
 
       {myPicks.length === 0 ? (
-        <p className="rounded-xl border border-line bg-panel p-6 text-center text-sm text-mute">
+        <p className="mx-auto max-w-3xl rounded-xl border border-line bg-panel p-6 text-center text-sm text-mute">
           Você ainda não fez nenhum palpite.{" "}
           <a href="/matches" className="text-neon hover:underline">
             Ir para os jogos →

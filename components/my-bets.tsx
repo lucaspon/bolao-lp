@@ -19,7 +19,7 @@ export function MyBets({ picks }: { picks: MatchWithBet[] }) {
   return (
     <div className="space-y-4">
       {active.length > 0 ? (
-        <div className="grid gap-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {active.map((match) => (
             <MatchCard key={match.id} match={match} />
           ))}
@@ -41,7 +41,7 @@ export function MyBets({ picks }: { picks: MatchWithBet[] }) {
             {showDone ? "Ocultar concluídos" : `Mostrar concluídos (${done.length})`}
           </button>
           {showDone && (
-            <div className="grid gap-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {done.map((match) => (
                 <MatchCard key={match.id} match={match} />
               ))}
