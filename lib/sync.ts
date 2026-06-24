@@ -34,7 +34,9 @@ const STAGE_MAP: Record<string, Stage> = {
 };
 
 function mapStatus(apiStatus: string): MatchStatus {
-  if (apiStatus === "IN_PLAY" || apiStatus === "PAUSED") return "live";
+  // football-data uses several in-progress labels (it has returned plain "LIVE"
+  // as well as IN_PLAY/PAUSED/SUSPENDED) — treat them all as live.
+  if (["IN_PLAY", "PAUSED", "LIVE", "SUSPENDED"].includes(apiStatus)) return "live";
   if (apiStatus === "FINISHED" || apiStatus === "AWARDED") return "finished";
   return "scheduled";
 }
