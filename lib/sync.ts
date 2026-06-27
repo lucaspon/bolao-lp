@@ -89,6 +89,7 @@ export type SyncResult = { total: number; live: number; finished: number; rescor
 // (the API is our source of truth). Finished matches get re-scored.
 export async function syncMatches(): Promise<SyncResult> {
   const apiMatches = await fetchWcMatches();
+  const now = Date.now();
   const result: SyncResult = { total: 0, live: 0, finished: 0, rescored: 0 };
 
   // Prefetch current scores + which matches have unscored bets, so we only
@@ -166,6 +167,7 @@ export async function syncMatches(): Promise<SyncResult> {
         status: matches.status,
         homeScore: matches.homeScore,
         awayScore: matches.awayScore,
+        kickoffAt: matches.kickoffAt,
       });
 
     result.total += 1;
@@ -174,14 +176,21 @@ export async function syncMatches(): Promise<SyncResult> {
     // by the merge above), never by the clock — a clock rule wrongly finalizes a
     // rain-suspended match whose elapsed time exceeds 90'. The merge keeps the
     // score current (even while football-data still says IN_PLAY), so a finished
-    // match shows the right score. Rescore when that score changed or bets are
-    // still unscored.
+    // match shows the right score. Rescore when the score changed, bets are
+    // still unscored, or the match finished very recently (≤10 min after kickoff
+    // + typical match duration) — the re-sync window catches VAR reversals and
+    // stoppage-time goals that land after football-data first marks it FINISHED.
     if (saved.status === "finished" && saved.homeScore !== null && saved.awayScore !== null) {
       result.finished += 1;
       const old = oldByApiId.get(apiMatch.id);
       const scoreChanged =
         !old || old.homeScore !== saved.homeScore || old.awayScore !== saved.awayScore;
-      if (scoreChanged || unscoredMatchIds.has(saved.id)) {
+      const stage = STAGE_MAP[apiMatch.stage];
+      const typicalDurationMs = (stage === "group" ? 110 : 150) * 60_000;
+      const resyncWindowMs = 10 * 60_000;
+      const recentlyFinished =
+        now - new Date(saved.kickoffAt).getTime() < typicalDurationMs + resyncWindowMs;
+      if (scoreChanged || unscoredMatchIds.has(saved.id) || recentlyFinished) {
         await rescoreMatch(saved.id, saved.homeScore, saved.awayScore);
         result.rescored += 1;
       }
