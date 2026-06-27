@@ -10,8 +10,8 @@ export type StagePanel = {
   node: ReactNode;
 };
 
-export function StageTabs({ panels }: { panels: StagePanel[] }) {
-  const [active, setActive] = useState(panels[0]?.key);
+export function StageTabs({ panels, defaultKey }: { panels: StagePanel[]; defaultKey?: string }) {
+  const [active, setActive] = useState(defaultKey ?? panels[0]?.key);
   const current = panels.find((panel) => panel.key === active) ?? panels[0];
 
   // Tab / Shift+Tab cycle through the stages (unless you're typing in a field).

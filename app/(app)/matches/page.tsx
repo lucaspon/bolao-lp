@@ -156,10 +156,10 @@ function StatChip({ value, label }: { value: number | string; label: string }) {
   );
 }
 
-// Only during the top-up staking window (between the last group match and the
-// first knockout) do we surface a callout — it returns when that window closes
-// (the knockouts begin). Null otherwise, so the callout stays hidden.
-function topupDeadlineMs(matches: MatchWithBet[]): number | null {
+// Returns the deadline to show on the callout, and whether the window is still
+// coming (opens=true) or already open and closing soon (opens=false).
+// Null when there's nothing relevant to show.
+function topupCallout(matches: MatchWithBet[]): { deadlineMs: number; opens: boolean } | null {
   const toMs = (list: MatchWithBet[]) => list.map((m) => new Date(m.kickoffAt).getTime());
   const group = toMs(matches.filter((m) => m.stage === "group"));
   const r32 = toMs(matches.filter((m) => m.stage === "round_of_32"));
@@ -169,7 +169,10 @@ function topupDeadlineMs(matches: MatchWithBet[]): number | null {
     lastGroupMs: Math.max(...group),
     firstKnockoutMs: Math.min(...r32),
   };
-  return stakingWindow(bounds).phase === "topup" ? bounds.firstKnockoutMs : null;
+  const { phase } = stakingWindow(bounds);
+  if (phase === "topup") return { deadlineMs: bounds.firstKnockoutMs, opens: false };
+  if (phase === "group_running") return { deadlineMs: bounds.lastGroupMs, opens: true };
+  return null;
 }
 
 export default async function MatchesPage() {
@@ -189,7 +192,7 @@ export default async function MatchesPage() {
   const previa = knockoutData(matches, knockoutMatches, true);
   const oficial = knockoutData(matches, knockoutMatches, false);
 
-  const topupCloses = topupDeadlineMs(matches);
+  const callout = topupCallout(matches);
 
   const panels: StagePanel[] = [
     {
@@ -227,7 +230,7 @@ export default async function MatchesPage() {
 
       <PointsElapsed pct={elapsedPct} />
 
-      {topupCloses && <BetDeadlineCallout deadlineMs={topupCloses} />}
+      {callout && <BetDeadlineCallout deadlineMs={callout.deadlineMs} opens={callout.opens} />}
 
       <p className="mb-3 text-xs text-mute">
         ⌨️ Setas movem · <span className="text-ink">Enter</span> para apostar ·{" "}
@@ -240,7 +243,7 @@ export default async function MatchesPage() {
       </p>
 
       <KeyboardBetProvider>
-        <StageTabs panels={panels} />
+        <StageTabs panels={panels} defaultKey="knockout" />
       </KeyboardBetProvider>
     </div>
   );

@@ -9,6 +9,7 @@ import {
 import { MyBets } from "@/components/my-bets";
 import { PayEntry } from "@/components/pay-entry";
 import { ApiAccess } from "@/components/api-access";
+import { BetDeadlineCallout } from "@/components/bet-deadline-callout";
 import { scoreBet } from "@/lib/scoring";
 import { stakingWindow } from "@/lib/staking";
 
@@ -35,6 +36,12 @@ export default async function ProfilePage() {
   const baseUrl = `${headerList.get("x-forwarded-proto") ?? "https"}://${headerList.get("host")}`;
   const myPicks = all.filter((match) => match.bet);
   const window = stakingWindow(bounds);
+  const callout =
+    window.phase === "topup"
+      ? { deadlineMs: bounds.firstKnockoutMs, opens: false }
+      : window.phase === "group_running"
+        ? { deadlineMs: bounds.lastGroupMs, opens: true }
+        : null;
 
   // exact/winner come from the actual scores (multiplier-independent), not the
   // weighted points value.
@@ -52,6 +59,8 @@ export default async function ProfilePage() {
 
   return (
     <div className="w-full">
+      {callout && <BetDeadlineCallout deadlineMs={callout.deadlineMs} opens={callout.opens} />}
+
       {/* Header + stats on one row; payment and API side-by-side. Everything
           uses the full width but is split into columns so nothing is stretched. */}
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
