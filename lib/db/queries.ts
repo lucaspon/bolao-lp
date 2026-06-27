@@ -331,6 +331,19 @@ export async function getPointsProgression(): Promise<PointsProgression> {
     .innerJoin(users, eq(users.id, bets.userId))
     .where(and(eq(matches.status, "finished"), isNotNull(bets.points)));
 
+  // Stake per user — used as a tiebreaker so the top-5 line chart matches the
+  // leaderboard table (which sorts points → stake → exact → name).
+  const stakeRows = await db
+    .select({
+      userId: payments.userId,
+      stakeCents: sql<number>`coalesce(sum(${payments.amountCents}), 0)`.mapWith(Number),
+    })
+    .from(payments)
+    .where(eq(payments.status, "paid"))
+    .groupBy(payments.userId);
+  const stakeByUser = new Map<number, number>(stakeRows.map((r) => [r.userId, r.stakeCents]));
+  const stake = (id: number) => stakeByUser.get(id) ?? 0;
+
   const names = new Map<number, string>();
   const perMatch = new Map<string, number>(); // `${userId}:${matchId}` -> points
   for (const row of rows) {
@@ -340,15 +353,19 @@ export async function getPointsProgression(): Promise<PointsProgression> {
   const userIds = [...names.keys()];
 
   // Walk the timeline, accumulating points per player and the top-5 standings.
+  // Sort matches the leaderboard table: points → stake → name.
+  const tableSort = (a: number, b: number) =>
+    cum.get(b)! - cum.get(a)! ||
+    stake(b) - stake(a) ||
+    names.get(a)!.localeCompare(names.get(b)!);
+
   const cum = new Map<number, number>(userIds.map((id) => [id, 0]));
   const cumByUser = new Map<number, number[]>(userIds.map((id) => [id, []]));
   const top5ByMatch: ProgressionStanding[][] = [];
   for (const match of finished) {
     for (const id of userIds) cum.set(id, cum.get(id)! + (perMatch.get(`${id}:${match.id}`) ?? 0));
     for (const id of userIds) cumByUser.get(id)!.push(cum.get(id)!);
-    const ranked = [...userIds].sort(
-      (a, b) => cum.get(b)! - cum.get(a)! || names.get(a)!.localeCompare(names.get(b)!),
-    );
+    const ranked = [...userIds].sort(tableSort);
     top5ByMatch.push(
       ranked.slice(0, 5).map((id) => ({
         username: names.get(id)!,
@@ -364,7 +381,7 @@ export async function getPointsProgression(): Promise<PointsProgression> {
       cumulative: cumByUser.get(userId)!,
       total: cum.get(userId)!,
     }))
-    .sort((a, b) => b.total - a.total || a.username.localeCompare(b.username));
+    .sort((a, b) => b.total - a.total || stake(b.userId) - stake(a.userId) || a.username.localeCompare(b.username));
 
   const timeline = finished.map((m, i) => ({
     ms: new Date(m.kickoffAt).getTime(),
