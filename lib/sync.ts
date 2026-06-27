@@ -85,6 +85,12 @@ async function fetchWcMatches(): Promise<ApiMatch[]> {
 
 export type SyncResult = { total: number; live: number; finished: number; rescored: number };
 
+// Scores that the API has wrong and we've verified manually. Keyed by apiMatchId.
+// These override whatever football-data.org returns and survive every sync run.
+const SCORE_OVERRIDES: Record<number, { home: number; away: number }> = {
+  537368: { home: 1, away: 1 }, // EGY 1-1 IRN (API incorrectly reports 1-2)
+};
+
 // Pulls the World Cup schedule + results from football-data.org and upserts them
 // (the API is our source of truth). Finished matches get re-scored.
 export async function syncMatches(): Promise<SyncResult> {
@@ -112,7 +118,8 @@ export async function syncMatches(): Promise<SyncResult> {
     if (!stage) return;
 
     const status = mapStatus(apiMatch.status);
-    const { home, away } = apiMatch.score.fullTime;
+    const override = SCORE_OVERRIDES[apiMatch.id];
+    const { home, away } = override ?? apiMatch.score.fullTime;
     const hasScore = home !== null && away !== null;
     const homeScore = status === "scheduled" || !hasScore ? null : home;
     const awayScore = status === "scheduled" || !hasScore ? null : away;
