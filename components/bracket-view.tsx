@@ -110,7 +110,10 @@ export function BracketView({ matches }: { matches: BracketPill[] }) {
     <div>
       {/* Desktop: horizontal mirror bracket with Final + 3rd in the centre.
           Breaks out of the page's max-w-6xl column to use the full viewport. */}
-      <div className="hidden pb-2 lg:relative lg:left-[calc(50%-50vw)] lg:flex lg:w-screen lg:justify-center lg:px-8">
+      <div
+        className="hidden pb-2 lg:relative lg:left-[calc(50%-50vw)] lg:flex lg:w-screen lg:justify-center lg:px-8"
+        style={{ minHeight: HALF_HEIGHT }}
+      >
         <Half columns={LEFT_COLUMNS} side="left" byNo={byNo} />
 
         <div
