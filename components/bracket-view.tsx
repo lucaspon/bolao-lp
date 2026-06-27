@@ -37,7 +37,7 @@ function RoundColumn({
   return (
     <div className="flex flex-col justify-around" style={{ height: HALF_HEIGHT }}>
       {nos.map((no) => (
-        <div key={no} className="flex items-center">
+        <div key={no} className="flex items-center py-[1px]">
           <Pill pill={byNo.get(no)} />
         </div>
       ))}
