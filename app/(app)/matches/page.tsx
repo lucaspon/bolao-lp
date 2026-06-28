@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth/session";
 import { getMatchesForUser, type MatchWithBet } from "@/lib/db/queries";
-import { canBet, isLockedAt, isClosingSoon, pointsElapsedPct } from "@/lib/match";
+import { canBet, isLockedAt, isClosingSoon, pointsElapsedPct, BRAZIL_CODE } from "@/lib/match";
 import { stakingWindow } from "@/lib/staking";
 import { computeStandings, type Standings } from "@/lib/standings";
 import { BetDeadlineCallout } from "@/components/bet-deadline-callout";
@@ -164,13 +164,22 @@ function topupCallout(matches: MatchWithBet[]): { deadlineMs: number; opens: boo
   const group = toMs(matches.filter((m) => m.stage === "group"));
   const r32 = toMs(matches.filter((m) => m.stage === "round_of_32"));
   if (group.length === 0 || r32.length === 0) return null;
+  const firstKnockoutMs = Math.min(...r32);
+  const r32Brazil = toMs(
+    matches.filter(
+      (m) =>
+        m.stage === "round_of_32" &&
+        (m.homeTeam === BRAZIL_CODE || m.awayTeam === BRAZIL_CODE),
+    ),
+  );
   const bounds = {
     firstGroupMs: Math.min(...group),
     lastGroupMs: Math.max(...group),
-    firstKnockoutMs: Math.min(...r32),
+    firstKnockoutMs,
+    brazilKnockoutMs: r32Brazil.length > 0 ? Math.min(...r32Brazil) : firstKnockoutMs,
   };
   const { phase } = stakingWindow(bounds);
-  if (phase === "topup") return { deadlineMs: bounds.firstKnockoutMs, opens: false };
+  if (phase === "topup") return { deadlineMs: bounds.brazilKnockoutMs, opens: false };
   if (phase === "group_running") return { deadlineMs: bounds.lastGroupMs, opens: true };
   return null;
 }

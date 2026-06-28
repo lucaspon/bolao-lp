@@ -38,7 +38,7 @@ export default async function ProfilePage() {
   const window = stakingWindow(bounds);
   const callout =
     window.phase === "topup"
-      ? { deadlineMs: bounds.firstKnockoutMs, opens: false }
+      ? { deadlineMs: bounds.brazilKnockoutMs, opens: false }
       : window.phase === "group_running"
         ? { deadlineMs: bounds.lastGroupMs, opens: true }
         : null;

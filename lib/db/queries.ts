@@ -13,6 +13,7 @@ import {
 } from "./schema";
 import { isAdminEmail, usernameFromEmail } from "../auth/policy";
 import { scoreBet } from "../scoring";
+import { BRAZIL_CODE } from "../match";
 import type { StakingBounds } from "../staking";
 
 export type MatchWithBet = Match & {
@@ -541,14 +542,18 @@ export async function getStakingBounds(): Promise<StakingBounds> {
       firstGroup: sql<string | null>`min(${matches.kickoffAt}) filter (where ${matches.stage} = 'group')`,
       lastGroup: sql<string | null>`max(${matches.kickoffAt}) filter (where ${matches.stage} = 'group')`,
       firstKnockout: sql<string | null>`min(${matches.kickoffAt}) filter (where ${matches.stage} = 'round_of_32')`,
+      brazilKnockout: sql<string | null>`min(${matches.kickoffAt}) filter (where ${matches.stage} = 'round_of_32' and (${matches.homeTeam} = ${BRAZIL_CODE} or ${matches.awayTeam} = ${BRAZIL_CODE}))`,
     })
     .from(matches);
   const ms = (value: string | null, fallback: number) =>
     value ? new Date(value).getTime() : fallback;
+  const firstKnockoutMs = ms(row.firstKnockout, Number.POSITIVE_INFINITY);
   return {
     firstGroupMs: ms(row.firstGroup, Number.POSITIVE_INFINITY),
     lastGroupMs: ms(row.lastGroup, Number.POSITIVE_INFINITY),
-    firstKnockoutMs: ms(row.firstKnockout, Number.POSITIVE_INFINITY),
+    firstKnockoutMs,
+    // Until Brazil's R32 fixture exists, keep the original knockout deadline.
+    brazilKnockoutMs: ms(row.brazilKnockout, firstKnockoutMs),
   };
 }
 

@@ -15,6 +15,9 @@ export type StakingBounds = {
   firstGroupMs: number;
   lastGroupMs: number;
   firstKnockoutMs: number;
+  // Kickoff of Brazil's Round-of-32 match — the top-up window stays open until
+  // Brazil plays. Falls back to firstKnockoutMs until that match is known.
+  brazilKnockoutMs: number;
 };
 
 // Window 1 ("initial"): bet freely until the group stage begins.
@@ -22,13 +25,14 @@ export type StakingBounds = {
 //   last group match. They can only bet on matches that haven't locked, so their
 //   elapsed/ongoing matches score 0. Existing players can't top up here — that
 //   would retroactively inflate group points they've already earned.
-// Window 2 ("topup"): top-ups only, from the last group match until the knockouts.
+// Window 2 ("topup"): top-ups only, from the last group match until Brazil's
+//   first knockout match kicks off.
 export function stakingWindow(bounds: StakingBounds, now: number = Date.now()): StakingWindow {
   if (now < bounds.firstGroupMs)
     return { phase: "initial", open: true, topUpOnly: false, firstTimeOnly: false };
   if (now < bounds.lastGroupMs)
     return { phase: "group_running", open: true, topUpOnly: false, firstTimeOnly: true };
-  if (now < bounds.firstKnockoutMs)
+  if (now < bounds.brazilKnockoutMs)
     return { phase: "topup", open: true, topUpOnly: true, firstTimeOnly: false };
   return { phase: "closed", open: false, topUpOnly: false, firstTimeOnly: false };
 }

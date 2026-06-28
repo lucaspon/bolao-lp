@@ -34,7 +34,7 @@ export function BetDeadlineCallout({
             <span className="font-semibold text-gold">Janela de reforço aberta</span>
             <span className="text-mute">
               {" "}
-              — aumente sua aposta antes do mata-mata. Fecha {when}, quando o mata-mata começa.
+              — aumente sua aposta antes do mata-mata. Fecha {when}, quando o Brasil entra em campo.
             </span>
           </>
         )}
