@@ -56,6 +56,11 @@ export default async function RegrasPage() {
             Você pode criar e editar seus palpites até <strong>10 minutos antes</strong> de cada jogo
             começar. Depois disso, o palpite tranca.
           </p>
+          <p>
+            No mata-mata, vale o placar ao fim da <strong>prorrogação</strong> — os gols do tempo
+            extra contam. A <strong>disputa de pênaltis não conta</strong>: um jogo decidido nos
+            pênaltis vale como o empate em que terminou.
+          </p>
         </Section>
 
         <Section title="Cada fase vale mais">

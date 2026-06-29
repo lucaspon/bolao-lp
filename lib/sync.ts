@@ -57,6 +57,11 @@ function resolveTeamCode(apiTeam: ApiTeam | null | undefined): string | null {
   }
   return tla; // unknown code but no name match — keep it rather than nulling
 }
+type ApiScore = {
+  duration: string;
+  fullTime: { home: number | null; away: number | null };
+  penalties: { home: number | null; away: number | null } | null;
+};
 type ApiMatch = {
   id: number;
   utcDate: string;
@@ -65,8 +70,24 @@ type ApiMatch = {
   group: string | null;
   homeTeam: ApiTeam;
   awayTeam: ApiTeam;
-  score: { fullTime: { home: number | null; away: number | null } };
+  score: ApiScore;
 };
+
+// The score we grade bets on: extra time counts, the penalty shootout doesn't.
+// football-data's fullTime is the cumulative running score and rolls the
+// shootout in (e.g. a 1–1 won 6–5 on pens is reported as 7–6), so when a match
+// went to penalties we subtract them back out — grading it as the draw it was
+// at the end of extra time.
+function exPenaltiesScore(score: ApiScore): { home: number | null; away: number | null } {
+  const { home, away } = score.fullTime;
+  if (score.duration !== "PENALTY_SHOOTOUT" || home === null || away === null) {
+    return { home, away };
+  }
+  return {
+    home: home - (score.penalties?.home ?? 0),
+    away: away - (score.penalties?.away ?? 0),
+  };
+}
 
 async function fetchWcMatches(): Promise<ApiMatch[]> {
   const token = process.env.FOOTBALL_DATA_TOKEN;
@@ -119,7 +140,7 @@ export async function syncMatches(): Promise<SyncResult> {
 
     const status = mapStatus(apiMatch.status);
     const override = SCORE_OVERRIDES[apiMatch.id];
-    const { home, away } = override ?? apiMatch.score.fullTime;
+    const { home, away } = override ?? exPenaltiesScore(apiMatch.score);
     const hasScore = home !== null && away !== null;
     const homeScore = status === "scheduled" || !hasScore ? null : home;
     const awayScore = status === "scheduled" || !hasScore ? null : away;
