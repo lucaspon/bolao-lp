@@ -57,10 +57,12 @@ function resolveTeamCode(apiTeam: ApiTeam | null | undefined): string | null {
   }
   return tla; // unknown code but no name match — keep it rather than nulling
 }
+type Side = { home: number | null; away: number | null };
 type ApiScore = {
   duration: string;
-  fullTime: { home: number | null; away: number | null };
-  penalties: { home: number | null; away: number | null } | null;
+  fullTime: Side;
+  regularTime: Side | null;
+  extraTime: Side | null;
 };
 type ApiMatch = {
   id: number;
@@ -74,19 +76,20 @@ type ApiMatch = {
 };
 
 // The score we grade bets on: extra time counts, the penalty shootout doesn't.
-// football-data's fullTime is the cumulative running score and rolls the
-// shootout in (e.g. a 1–1 won 6–5 on pens is reported as 7–6), so when a match
-// went to penalties we subtract them back out — grading it as the draw it was
-// at the end of extra time.
-function exPenaltiesScore(score: ApiScore): { home: number | null; away: number | null } {
-  const { home, away } = score.fullTime;
-  if (score.duration !== "PENALTY_SHOOTOUT" || home === null || away === null) {
-    return { home, away };
+// For a shootout we grade on the score at the end of extra time (regularTime +
+// extraTime) — the draw it was before penalties. We deliberately don't derive
+// this from fullTime: football-data's fullTime rolls the shootout in and its
+// fullTime/penalties figures are sometimes wrong (e.g. GER–PAR R32 reported
+// fullTime 4–5 with an impossible "4–4" shootout). regularTime/extraTime hold
+// the goals actually scored in each period, so they stay correct.
+function exPenaltiesScore(score: ApiScore): Side {
+  const reg = score.regularTime;
+  if (score.duration === "PENALTY_SHOOTOUT" && reg && reg.home !== null && reg.away !== null) {
+    const ext = score.extraTime;
+    return { home: reg.home + (ext?.home ?? 0), away: reg.away + (ext?.away ?? 0) };
   }
-  return {
-    home: home - (score.penalties?.home ?? 0),
-    away: away - (score.penalties?.away ?? 0),
-  };
+  // REGULAR / EXTRA_TIME: fullTime already excludes any shootout.
+  return score.fullTime;
 }
 
 async function fetchWcMatches(): Promise<ApiMatch[]> {
