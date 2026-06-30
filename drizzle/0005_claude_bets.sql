@@ -1,13 +1,9 @@
--- Claude AI's palpites for the currently-open Round-of-32 / Round-of-16 ties.
--- Keyed on stable identifiers (user email, matches.api_match_id) rather than
--- serial ids, so this is portable across environments and a harmless no-op on a
--- DB where those matches haven't been synced yet (the JOIN simply matches zero
--- rows). Re-running updates the picks in place.
+-- Claude AI's palpites for the Round-of-32 / Round-of-16 ties that were open on
+-- 2026-06-30. Targets the EXISTING "Claude AI" account by its email; it never
+-- creates a user, so it can't spawn a duplicate. Keyed on matches.api_match_id
+-- (stable across environments) and a no-op where that user or those matches
+-- don't exist (the JOINs simply match zero rows). Re-running updates in place.
 
-INSERT INTO "users" ("email", "username")
-VALUES ('claude@anthropic.com', 'Claude')
-ON CONFLICT ("email") DO NOTHING;
---> statement-breakpoint
 INSERT INTO "bets" ("user_id", "match_id", "home_pred", "away_pred")
 SELECT u."id", m."id", v."home_pred", v."away_pred"
 FROM (VALUES
@@ -25,7 +21,7 @@ FROM (VALUES
   (537376, 1, 2)   -- Canada–Morocco (Round of 16)
 ) AS v("api_match_id", "home_pred", "away_pred")
 JOIN "matches" m ON m."api_match_id" = v."api_match_id"
-JOIN "users" u ON u."email" = 'claude@anthropic.com'
+JOIN "users" u ON u."email" = 'claude-ai@bolao.local'
 ON CONFLICT ("user_id", "match_id")
 DO UPDATE SET "home_pred" = EXCLUDED."home_pred",
               "away_pred" = EXCLUDED."away_pred",
