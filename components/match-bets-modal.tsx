@@ -6,9 +6,12 @@ import { getTeam } from "@/lib/teams";
 import { scoreBet } from "@/lib/scoring";
 import { getMatchBetsAction } from "@/app/actions/bets";
 import type { MatchBet } from "@/lib/db/queries";
+import { HoverTip } from "@/components/hover-tip";
 import { cn } from "@/lib/utils";
 
 const code = (c: string | null) => getTeam(c)?.code ?? c ?? "?";
+const displayName = (username: string) =>
+  username === "Claude AI" ? "🤖 Claude AI" : username;
 
 function TeamLabel({ code: c }: { code: string | null }) {
   const team = getTeam(c);
@@ -40,20 +43,24 @@ function ScoreMatrix({
   const maxH = Math.max(3, homeScore, ...rows.map((r) => r.homePred));
   const maxA = Math.max(3, awayScore, ...rows.map((r) => r.awayPred));
   const counts = new Map<string, number>();
+  const usersByScore = new Map<string, string[]>();
   for (const r of rows) {
     const key = `${r.homePred}:${r.awayPred}`;
     counts.set(key, (counts.get(key) ?? 0) + 1);
+    const list = usersByScore.get(key);
+    if (list) list.push(r.username);
+    else usersByScore.set(key, [r.username]);
   }
   const maxCount = Math.max(1, ...counts.values());
   const homes = Array.from({ length: maxH + 1 }, (_, i) => i);
   const aways = Array.from({ length: maxA + 1 }, (_, i) => i);
 
   return (
-    <div className="shrink-0">
+    <div className="lg:w-1/2">
       <div className="mb-2 text-xs font-semibold text-mute">Mapa de placares</div>
       <div
-        className="inline-grid gap-0.5 text-[10px]"
-        style={{ gridTemplateColumns: `16px repeat(${aways.length}, 22px)` }}
+        className="mx-auto grid w-full max-w-[340px] gap-0.5 text-[11px]"
+        style={{ gridTemplateColumns: `16px repeat(${aways.length}, minmax(0, 1fr))` }}
       >
         <div />
         {aways.map((a) => (
@@ -67,11 +74,12 @@ function ScoreMatrix({
             {aways.map((a) => {
               const count = counts.get(`${h}:${a}`) ?? 0;
               const isResult = h === homeScore && a === awayScore;
+              const pickers = usersByScore.get(`${h}:${a}`) ?? [];
               return (
-                <div
+                <HoverTip
                   key={a}
                   className={cn(
-                    "flex aspect-square items-center justify-center rounded text-ink",
+                    "flex aspect-square cursor-default items-center justify-center rounded text-ink",
                     isResult && "ring-1 ring-gold",
                   )}
                   style={{
@@ -80,17 +88,29 @@ function ScoreMatrix({
                         ? `rgba(52,226,122,${(0.12 + 0.55 * (count / maxCount)).toFixed(2)})`
                         : "rgba(255,255,255,0.03)",
                   }}
+                  content={
+                    count > 0 ? (
+                      <div className="space-y-0.5">
+                        <div className="mb-1 font-semibold text-mute">
+                          {h}–{a} · {count} {count === 1 ? "palpite" : "palpites"}
+                        </div>
+                        {pickers.map((username) => (
+                          <div key={username}>{displayName(username)}</div>
+                        ))}
+                      </div>
+                    ) : undefined
+                  }
                 >
                   {count > 0 ? count : ""}
-                </div>
+                </HoverTip>
               );
             })}
           </Fragment>
         ))}
       </div>
-      <div className="mt-1.5 max-w-[160px] text-[10px] leading-tight text-mute">
+      <div className="mt-1.5 text-[10px] leading-tight text-mute">
         linhas {code(homeTeam)} (casa) · colunas {code(awayTeam)} (fora) ·{" "}
-        <span className="text-gold">▢ resultado</span>
+        <span className="text-gold">▢ resultado</span> · passe o mouse para ver quem
       </div>
     </div>
   );
@@ -207,7 +227,7 @@ export function MatchBetsModal({
               homeScore={homeScore}
               awayScore={awayScore}
             />
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 lg:w-1/2">
               <div className="gap-x-4 sm:columns-2">
                 {rows.map((row) => {
                   const isMe = row.userId === meId;
@@ -220,7 +240,7 @@ export function MatchBetsModal({
                       )}
                     >
                       <span className={cn("min-w-0 truncate", isMe ? "font-bold text-neon" : "text-ink")}>
-                        {row.username === "Claude AI" ? "🤖 Claude AI" : row.username}
+                        {displayName(row.username)}
                       </span>
                       <span className="flex shrink-0 items-center gap-2">
                         <span className="tabular text-mute">

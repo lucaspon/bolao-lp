@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 // Instant, app-themed tooltip. Positioned with `fixed` from the trigger's rect
@@ -10,11 +10,13 @@ export function HoverTip({
   label,
   content,
   className,
+  style,
   children,
 }: {
   label?: string | null;
   content?: ReactNode; // rich tooltip body; takes precedence over `label`
   className?: string;
+  style?: CSSProperties;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -30,6 +32,7 @@ export function HoverTip({
     <span
       ref={ref}
       className={className}
+      style={style}
       onMouseEnter={body ? show : undefined}
       onMouseLeave={() => setPos(null)}
       onFocus={body ? show : undefined}
