@@ -111,10 +111,13 @@ export function MatchPill({
   match,
   className,
   emphasis,
+  compact,
 }: {
   match: PillMatch;
   className?: string;
   emphasis?: boolean;
+  // Bracket overview: drop the venue line so every pill stays within one slot.
+  compact?: boolean;
 }) {
   const { bet } = match;
   const finished = match.status === "finished";
@@ -328,8 +331,9 @@ export function MatchPill({
           {match.dateLabel} · {statusLabel}
         </div>
 
-        {/* Location — only once the venue is known (filled progressively). */}
-        {match.venue && (
+        {/* Location — only once the venue is known (filled progressively).
+            Hidden in compact (bracket) mode to keep pills one slot tall. */}
+        {!compact && match.venue && (
           <div className="flex max-w-full items-center gap-0.5 truncate text-center text-[9px] text-mute/80">
             <MapPin size={9} className="shrink-0" />
             <span className="truncate">{match.venue}</span>

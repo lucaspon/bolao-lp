@@ -11,8 +11,10 @@ export type BracketPill = PillMatch & { matchNo: number };
 
 // Vertical rhythm for the desktop bracket. Each Round of 32 match gets one SLOT;
 // the whole half is exactly 8 slots tall, so every later round (4, 2, 1 matches)
-// centres itself between its feeders with `justify-around`.
-const SLOT = 68;
+// centres itself between its feeders with `justify-around`. SLOT must comfortably
+// exceed a (compact) pill's height — pills are min-h 68px — so 8 of them fit the
+// half without overflowing past it into the footer.
+const SLOT = 80;
 const HALF_HEIGHT = SLOT * 8;
 const PILL_W = "w-[128px]";
 
@@ -22,7 +24,7 @@ function Pill({ pill, emphasis }: { pill: BracketPill | undefined; emphasis?: bo
   }
   return (
     <div className={PILL_W}>
-      <MatchPill match={pill} emphasis={emphasis} />
+      <MatchPill match={pill} emphasis={emphasis} compact />
     </div>
   );
 }
