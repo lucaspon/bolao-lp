@@ -298,6 +298,7 @@ export type ProgressionMatch = {
   awayTeam: string | null;
   homeScore: number | null;
   awayScore: number | null;
+  maxPoints: number; // points at stake = 3 (a cravada) × the match's multiplier
   top5: ProgressionStanding[]; // standings right after this match
 };
 export type PointsProgression = {
@@ -314,6 +315,7 @@ export async function getPointsProgression(): Promise<PointsProgression> {
       awayTeam: matches.awayTeam,
       homeScore: matches.homeScore,
       awayScore: matches.awayScore,
+      pointsMultiplier: matches.pointsMultiplier,
     })
     .from(matches)
     .where(eq(matches.status, "finished"))
@@ -390,6 +392,7 @@ export async function getPointsProgression(): Promise<PointsProgression> {
     awayTeam: m.awayTeam,
     homeScore: m.homeScore,
     awayScore: m.awayScore,
+    maxPoints: 3 * m.pointsMultiplier,
     top5: top5ByMatch[i],
   }));
   return { timeline, series };
