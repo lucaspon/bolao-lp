@@ -6,6 +6,7 @@ import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, Tooltip } from 
 import { cn } from "@/lib/utils";
 import { PlayerResultsModal } from "@/components/player-results-modal";
 import { PointsChart } from "@/components/points-chart";
+import { PointsAverageChart } from "@/components/points-average-chart";
 import type { LeaderRow, ScoredBet, PointsProgression } from "@/lib/db/queries";
 import { computePayouts } from "@/lib/payout";
 
@@ -222,6 +223,8 @@ export function LeaderboardView({
       <PointsBarChart rows={rows} meId={meId} metric={metric} />
 
       <PointsChart progression={progression} meId={meId} rows={rows} />
+
+      <PointsAverageChart progression={progression} meId={meId} />
 
       <div className="overflow-x-auto rounded-2xl border border-line">
         <table className="w-full text-sm">

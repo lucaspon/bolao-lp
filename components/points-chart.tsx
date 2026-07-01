@@ -5,22 +5,23 @@ import { getTeam } from "@/lib/teams";
 import { cn } from "@/lib/utils";
 import type { PointsProgression, ProgressionSeries, LeaderRow } from "@/lib/db/queries";
 
-// Top-5 line colours (gold is reserved for the logged-in user).
-const TOP5_COLORS = ["#34e27a", "#5b9dff", "#ff5d6c", "#c084fc", "#22d3ee"];
-const GOLD = "#ffd24a";
-const GRAY = "#8a92a8";
+// Top-5 line colours (gold is reserved for the logged-in user). Shared with the
+// moving-average chart so the same players keep the same colour across both.
+export const TOP5_COLORS = ["#34e27a", "#5b9dff", "#ff5d6c", "#c084fc", "#22d3ee"];
+export const GOLD = "#ffd24a";
+export const GRAY = "#8a92a8";
 
-const fmtDate = (ms: number) =>
+export const fmtDate = (ms: number) =>
   new Date(ms).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 
-const code = (c: string | null) => getTeam(c)?.code ?? c ?? "?";
+export const code = (c: string | null) => getTeam(c)?.code ?? c ?? "?";
 
-type Pt = { x: number; y: number };
+export type Pt = { x: number; y: number };
 
 // Monotone cubic interpolation (Fritsch–Carlson, à la d3 curveMonotoneX): smooth
 // but never overshoots the data points — so monotonic data (cumulative points)
 // stays monotonic, instead of the Catmull-Rom dips between flat-then-jump points.
-function smoothPath(pts: Pt[]): string {
+export function smoothPath(pts: Pt[]): string {
   const n = pts.length;
   if (n === 0) return "";
   if (n === 1) return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
