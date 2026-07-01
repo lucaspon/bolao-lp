@@ -92,7 +92,7 @@ export function PointsAverageChart({
   return (
     <div className="mb-6 rounded-xl border border-line bg-panel p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-mute">Aproveitamento · últimos 8 jogos</span>
+        <span className="text-xs font-semibold text-mute">Média móvel normalizada de pontos (últimos 8 jogos)</span>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative w-full sm:flex-1">
@@ -100,7 +100,7 @@ export function PointsAverageChart({
             viewBox={`0 0 ${W} ${H}`}
             className="w-full"
             role="img"
-            aria-label="Aproveitamento (últimos 8 jogos) de todos os jogadores"
+            aria-label="Média móvel normalizada de pontos (últimos 8 jogos) de todos os jogadores"
           >
             {/* aproveitamento gridlines */}
             {yTicks.map((v) => (
