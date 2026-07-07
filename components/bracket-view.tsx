@@ -16,14 +16,26 @@ export type BracketPill = PillMatch & { matchNo: number };
 // half without overflowing past it into the footer.
 const SLOT = 80;
 const HALF_HEIGHT = SLOT * 8;
-const PILL_W = "w-[128px]";
+// Wider pills once Round of 32 is hidden — one fewer column means more room
+// per card, so team names and venue text stop truncating.
+const PILL_W_NARROW = "w-[128px]";
+const PILL_W_WIDE = "w-[168px]";
 
-function Pill({ pill, emphasis }: { pill: BracketPill | undefined; emphasis?: boolean }) {
+function Pill({
+  pill,
+  emphasis,
+  wide,
+}: {
+  pill: BracketPill | undefined;
+  emphasis?: boolean;
+  wide?: boolean;
+}) {
+  const widthClass = wide ? PILL_W_WIDE : PILL_W_NARROW;
   if (!pill) {
-    return <div className={cn(PILL_W, "h-9 rounded-lg border border-line/40 bg-panel/40")} />;
+    return <div className={cn(widthClass, "h-9 rounded-lg border border-line/40 bg-panel/40")} />;
   }
   return (
-    <div className={PILL_W}>
+    <div className={widthClass}>
       <MatchPill match={pill} emphasis={emphasis} compact />
     </div>
   );
@@ -32,15 +44,17 @@ function Pill({ pill, emphasis }: { pill: BracketPill | undefined; emphasis?: bo
 function RoundColumn({
   nos,
   byNo,
+  wide,
 }: {
   nos: number[];
   byNo: Map<number, BracketPill>;
+  wide?: boolean;
 }) {
   return (
     <div className="flex flex-col justify-around" style={{ height: HALF_HEIGHT }}>
       {nos.map((no) => (
         <div key={no} className="flex items-center py-0.5">
-          <Pill pill={byNo.get(no)} />
+          <Pill pill={byNo.get(no)} wide={wide} />
         </div>
       ))}
     </div>
@@ -75,10 +89,12 @@ function Half({
   columns,
   side,
   byNo,
+  wide,
 }: {
   columns: number[][];
   side: "left" | "right";
   byNo: Map<number, BracketPill>;
+  wide?: boolean;
 }) {
   return (
     <div className="flex items-stretch">
@@ -87,7 +103,7 @@ function Half({
         const feederCount = side === "left" ? nos.length : columns[index + 1]?.length ?? 0;
         return (
           <Fragment key={index}>
-            <RoundColumn nos={nos} byNo={byNo} />
+            <RoundColumn nos={nos} byNo={byNo} wide={wide} />
             {!last && <Connectors feederCount={feederCount} side={side} />}
           </Fragment>
         );
@@ -130,7 +146,7 @@ export function BracketView({ matches }: { matches: BracketPill[] }) {
         className="hidden pb-2 lg:relative lg:left-[calc(50%-50vw)] lg:flex lg:w-screen lg:justify-center lg:px-8"
         style={{ minHeight: HALF_HEIGHT }}
       >
-        <Half columns={leftColumns} side="left" byNo={byNo} />
+        <Half columns={leftColumns} side="left" byNo={byNo} wide={!showR32} />
 
         <div
           className="flex flex-col items-center justify-center gap-2 px-2"
@@ -139,14 +155,14 @@ export function BracketView({ matches }: { matches: BracketPill[] }) {
           <span className="font-display text-xs font-bold uppercase tracking-wide text-gold">
             Final
           </span>
-          <Pill pill={byNo.get(CENTER.final)} emphasis />
+          <Pill pill={byNo.get(CENTER.final)} emphasis wide={!showR32} />
           <span className="mt-3 text-[10px] uppercase tracking-wide text-mute">
             3º lugar
           </span>
-          <Pill pill={byNo.get(CENTER.third)} />
+          <Pill pill={byNo.get(CENTER.third)} wide={!showR32} />
         </div>
 
-        <Half columns={rightColumns} side="right" byNo={byNo} />
+        <Half columns={rightColumns} side="right" byNo={byNo} wide={!showR32} />
       </div>
 
       {/* Mobile: stacked round-by-round list. */}
