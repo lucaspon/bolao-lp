@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { MatchPill, type PillMatch } from "@/components/match-pill";
 import { BRACKET, CENTER, LEFT_COLUMNS, RIGHT_COLUMNS } from "@/lib/bracket";
 import { STAGE_LABEL } from "@/lib/match";
@@ -106,17 +106,31 @@ const MOBILE_ROUNDS: Stage[] = [
 ];
 
 export function BracketView({ matches }: { matches: BracketPill[] }) {
+  const [showR32, setShowR32] = useState(false);
   const byNo = new Map(matches.map((match) => [match.matchNo, match]));
+  const leftColumns = showR32 ? LEFT_COLUMNS : LEFT_COLUMNS.slice(1);
+  const rightColumns = showR32 ? RIGHT_COLUMNS : RIGHT_COLUMNS.slice(0, -1);
+  const mobileRounds = showR32 ? MOBILE_ROUNDS : MOBILE_ROUNDS.filter((r) => r !== "round_of_32");
 
   return (
     <div>
+      <div className="mb-2 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setShowR32((v) => !v)}
+          className="rounded-md border border-line px-2.5 py-1 text-xs font-semibold text-mute transition hover:text-ink"
+        >
+          {showR32 ? "Ocultar 16-avos" : "Mostrar 16-avos"}
+        </button>
+      </div>
+
       {/* Desktop: horizontal mirror bracket with Final + 3rd in the centre.
           Breaks out of the page's max-w-6xl column to use the full viewport. */}
       <div
         className="hidden pb-2 lg:relative lg:left-[calc(50%-50vw)] lg:flex lg:w-screen lg:justify-center lg:px-8"
         style={{ minHeight: HALF_HEIGHT }}
       >
-        <Half columns={LEFT_COLUMNS} side="left" byNo={byNo} />
+        <Half columns={leftColumns} side="left" byNo={byNo} />
 
         <div
           className="flex flex-col items-center justify-center gap-2 px-2"
@@ -132,12 +146,12 @@ export function BracketView({ matches }: { matches: BracketPill[] }) {
           <Pill pill={byNo.get(CENTER.third)} />
         </div>
 
-        <Half columns={RIGHT_COLUMNS} side="right" byNo={byNo} />
+        <Half columns={rightColumns} side="right" byNo={byNo} />
       </div>
 
       {/* Mobile: stacked round-by-round list. */}
       <div className="flex flex-col gap-5 lg:hidden">
-        {MOBILE_ROUNDS.map((round) => {
+        {mobileRounds.map((round) => {
           const nos = matches
             .filter((match) => BRACKET[match.matchNo]?.round === round)
             .map((match) => match.matchNo)
