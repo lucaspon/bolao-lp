@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth/session";
 import { getMatchesForUser, type MatchWithBet } from "@/lib/db/queries";
-import { canBet, isLockedAt, isClosingSoon, BRAZIL_CODE } from "@/lib/match";
+import { canBet, isLockedAt, isClosingSoon, pointsElapsedPct, BRAZIL_CODE } from "@/lib/match";
 import { stakingWindow } from "@/lib/staking";
 import { computeStandings, type Standings } from "@/lib/standings";
 import { BetDeadlineCallout } from "@/components/bet-deadline-callout";
@@ -121,6 +121,27 @@ function knockoutData(matches: MatchWithBet[], knockout: MatchWithBet[], include
   };
 }
 
+// Weighted tournament progress: how much of the total points pool has already
+// been decided. Climbs slowly through the group stage and jumps in the
+// heavily-weighted knockouts.
+function PointsElapsed({ pct }: { pct: number }) {
+  const rounded = Math.round(pct);
+  return (
+    <div className="mb-4 rounded-xl border border-line bg-panel px-4 py-3">
+      <div className="mb-1.5 flex items-baseline justify-between gap-2">
+        <span className="text-xs text-mute">Pontos do torneio já decididos</span>
+        <span className="tabular font-display text-sm font-bold text-neon">{rounded}%</span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-base">
+        <div
+          className="h-full rounded-full bg-neon transition-all"
+          style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function StatChip({ value, label }: { value: number | string; label: string }) {
   return (
     <div className="flex items-baseline gap-1.5 rounded-lg border border-line bg-panel px-3 py-1.5">
@@ -170,6 +191,8 @@ export default async function MatchesPage() {
     (sum, match) => sum + (match.bet?.points ?? 0),
     0,
   );
+  const elapsedPct = pointsElapsedPct(matches);
+
   const groupMatches = matches.filter((match) => match.stage === "group");
   const knockoutMatches = matches.filter((match) => match.stage !== "group");
   const previa = knockoutData(matches, knockoutMatches, true);
@@ -210,6 +233,8 @@ export default async function MatchesPage() {
           <StatChip value={openNow} label="abertos" />
         </div>
       </div>
+
+      <PointsElapsed pct={elapsedPct} />
 
       {callout && <BetDeadlineCallout deadlineMs={callout.deadlineMs} opens={callout.opens} />}
 
